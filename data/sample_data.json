@@ -1,0 +1,57 @@
+[
+  {
+    "task_id": "TASK-001",
+    "corridor_id": "C1",
+    "department": "Engineering",
+    "description": "Ultrasonic rail flaw inspection",
+    "severity": 5,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-05-20",
+    "priority_score": 94.0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-002",
+    "corridor_id": "C1",
+    "department": "Signal & Telecom",
+    "description": "Interlocking signal health check",
+    "severity": 4,
+    "estimated_duration_min": 60,
+    "last_maintenance_date": "2026-06-12",
+    "priority_score": 78.5,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-003",
+    "corridor_id": "C2",
+    "department": "Electrical",
+    "description": "Overhead equipment contact-wire inspection",
+    "severity": 3,
+    "estimated_duration_min": 75,
+    "last_maintenance_date": "2026-07-01",
+    "priority_score": 64.0,
+    "status": "scheduled"
+  },
+  {
+    "task_id": "TASK-004",
+    "corridor_id": "C2",
+    "department": "Engineering",
+    "description": "Turnout lubrication and alignment check",
+    "severity": 2,
+    "estimated_duration_min": 45,
+    "last_maintenance_date": "2026-08-05",
+    "priority_score": 42.5,
+    "status": "approved"
+  },
+  {
+    "task_id": "TASK-005",
+    "corridor_id": "C3",
+    "department": "Signal & Telecom",
+    "description": "Axle-counter reset investigation",
+    "severity": 5,
+    "estimated_duration_min": 30,
+    "last_maintenance_date": "2026-04-18",
+    "priority_score": 91.5,
+    "status": "overrun"
+  }
+]

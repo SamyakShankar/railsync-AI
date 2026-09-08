@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #172033;
+  background: #f7f9fc;
+}
+
+body { margin: 0; }
+.app-shell { padding: 2rem; }
