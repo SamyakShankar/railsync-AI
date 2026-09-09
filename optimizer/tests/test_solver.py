@@ -4,13 +4,25 @@ from datetime import datetime
 from optimizer.solver import solve
 
 
-def _task(task_id: str, duration: int, priority: float, corridor: str = "C1"):
-    return {
+def _task(
+    task_id: str,
+    duration: int,
+    priority: float,
+    corridor: str = "C1",
+    department: str | None = None,
+    work_group: str | None = None,
+):
+    task = {
         "task_id": task_id,
         "corridor_id": corridor,
         "estimated_duration_min": duration,
         "priority_score": priority,
     }
+    if department is not None:
+        task["department"] = department
+    if work_group is not None:
+        task["work_group"] = work_group
+    return task
 
 
 def _window(start: str, end: str, corridor: str = "C1"):
@@ -103,3 +115,35 @@ class SolverTests(unittest.TestCase):
             }],
         )
         self.assertEqual(result["unscheduled_task_ids"], ["TOO-LONG"])
+
+    def test_different_work_groups_can_share_a_closure(self):
+        result = solve(
+            [
+                _task("ENG", 60, 80, work_group="track"),
+                _task("SNT", 60, 70, work_group="signalling"),
+            ],
+            {"C1": 3},
+            [_window("2026-09-09T01:00:00Z", "2026-09-09T02:00:00Z")],
+        )
+
+        self.assertEqual({block["task_id"] for block in result["schedule"]}, {"ENG", "SNT"})
+        self.assertTrue(
+            all(
+                block["block_start"] == "2026-09-09T01:00:00Z"
+                and block["block_end"] == "2026-09-09T02:00:00Z"
+                for block in result["schedule"]
+            )
+        )
+
+    def test_same_work_group_cannot_overlap_even_with_spare_capacity(self):
+        result = solve(
+            [
+                _task("ENG-1", 60, 80, work_group="track"),
+                _task("ENG-2", 60, 70, work_group="track"),
+            ],
+            {"C1": 3},
+            [_window("2026-09-09T01:00:00Z", "2026-09-09T02:00:00Z")],
+        )
+
+        self.assertEqual(len(result["schedule"]), 1)
+        self.assertEqual(len(result["unscheduled_task_ids"]), 1)
