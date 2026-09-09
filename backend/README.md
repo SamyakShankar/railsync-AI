@@ -2,8 +2,28 @@
 
 **Owner:** backend team.
 
-**Must produce:** the FastAPI application in `main.py`, implementing the five frozen API route contracts and a health check. This scaffold uses placeholder responses only.
+FastAPI app in `main.py`. It loads synthetic tasks from `data/sample_data.json`, corridor windows from `data/coa.json`, scores jobs, calls the optimizer, and stores plans in SQLite.
 
-**Do not touch outside this folder:** no optimizer implementation, sample data, frontend UI, or integration code. The root `requirements.txt` is the shared dependency manifest explicitly requested for this scaffold.
+## Run locally
+
+From the repo root:
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 -m uvicorn backend.main:app --reload --app-dir .
+```
+
+API: `http://127.0.0.1:8000`  
+Docs: `http://127.0.0.1:8000/docs`
+
+If an old `backend/railsync.db` exists from before the disruption-table change, delete it and start again.
+
+CORS is open so the frontend on another port can call these routes.
+
+## Tests
+
+```bash
+python3 -m unittest backend.tests.test_main optimizer.tests.test_solver
+```
 
 **Depends on:** Task and schedule interfaces in `CONTRACTS.md`, sample Task data from `data/`, and the optimizer interface in `optimizer/`.

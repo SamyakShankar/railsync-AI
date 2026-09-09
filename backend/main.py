@@ -4,15 +4,16 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from optimizer.solver import solve
 
@@ -21,17 +22,68 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DATABASE_PATH = ROOT_DIR / "backend" / "railsync.db"
 DATABASE_PATH = Path(os.getenv("RAILSYNC_DATABASE_PATH", DEFAULT_DATABASE_PATH))
 SAMPLE_DATA_PATH = ROOT_DIR / "data" / "sample_data.json"
-PLANNING_DATE = date(2026, 9, 9)
-CORRIDOR_TRAFFIC = {"C1": 1.0, "C2": 0.8, "C3": 0.6}
-CORRIDOR_CAPACITY = {corridor_id: 1 for corridor_id in CORRIDOR_TRAFFIC}
-TIMETABLE_WINDOWS = [
-    {
-        "corridor_id": corridor_id,
-        "window_start": "2026-09-09T01:00:00Z",
-        "window_end": "2026-09-09T08:00:00Z",
+COA_PATH = Path(os.getenv("RAILSYNC_COA_PATH", ROOT_DIR / "data" / "coa.json"))
+PLANNING_STATUSES = ("pending", "scheduled", "approved")
+DEFAULT_OVERRUN_MIN = 40
+DEPARTMENT_WORK_GROUPS = {
+    "Engineering": "track",
+    "Track Maintenance": "track",
+    "Signal & Telecom": "signalling",
+    "Electrical": "electrical",
+}
+
+
+def _parse_datetime(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _format_datetime(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def load_coa(path: Path | None = None) -> dict[str, Any]:
+    coa_path = path or COA_PATH
+    with coa_path.open(encoding="utf-8") as coa_file:
+        return json.load(coa_file)
+
+
+def _windows_from_coa(coa: dict[str, Any]) -> list[dict[str, str]]:
+    windows = []
+    for corridor in coa["corridors"]:
+        for window in corridor["windows"]:
+            windows.append({
+                "corridor_id": corridor["corridor_id"],
+                "window_start": window["window_start"],
+                "window_end": window["window_end"],
+                "label": window.get("label", ""),
+            })
+    return windows
+
+
+def apply_coa(coa: dict[str, Any]) -> None:
+    global PLANNING_DATE, CORRIDOR_TRAFFIC, CORRIDOR_CAPACITY, TIMETABLE_WINDOWS, COA
+    COA = coa
+    PLANNING_DATE = date.fromisoformat(coa["planning_date"])
+    CORRIDOR_TRAFFIC = {
+        corridor["corridor_id"]: float(corridor["traffic_factor"])
+        for corridor in coa["corridors"]
     }
-    for corridor_id in CORRIDOR_TRAFFIC
-]
+    CORRIDOR_CAPACITY = {
+        corridor["corridor_id"]: int(corridor["capacity"])
+        for corridor in coa["corridors"]
+    }
+    TIMETABLE_WINDOWS = _windows_from_coa(coa)
+
+
+COA: dict[str, Any] = {}
+PLANNING_DATE = date(2026, 9, 9)
+CORRIDOR_TRAFFIC: dict[str, float] = {}
+CORRIDOR_CAPACITY: dict[str, int] = {}
+TIMETABLE_WINDOWS: list[dict[str, str]] = []
+apply_coa(load_coa())
 
 
 class ApprovePlanRequest(BaseModel):
@@ -41,10 +93,35 @@ class ApprovePlanRequest(BaseModel):
 class DisruptRequest(BaseModel):
     task_id: str
     reason: str
+    overrun_min: int = Field(default=DEFAULT_OVERRUN_MIN, ge=0, le=24 * 60)
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def work_group_for(department: str) -> str:
+    return DEPARTMENT_WORK_GROUPS.get(department, department)
+
+
+def clip_windows_after(
+    windows: list[dict[str, str]],
+    corridor_id: str,
+    occupied_until: datetime,
+) -> list[dict[str, str]]:
+    clipped: list[dict[str, str]] = []
+    for window in windows:
+        if window["corridor_id"] != corridor_id:
+            clipped.append(dict(window))
+            continue
+        start = _parse_datetime(window["window_start"])
+        end = _parse_datetime(window["window_end"])
+        new_start = max(start, occupied_until)
+        if new_start < end:
+            updated = dict(window)
+            updated["window_start"] = _format_datetime(new_start)
+            clipped.append(updated)
+    return clipped
 
 
 @contextmanager
@@ -94,6 +171,8 @@ def _connect_and_initialize() -> None:
                 disruption_id TEXT PRIMARY KEY,
                 task_id TEXT NOT NULL,
                 reason TEXT NOT NULL,
+                overrun_min INTEGER NOT NULL,
+                occupied_until TEXT,
                 created_at TEXT NOT NULL
             );
             """
@@ -138,6 +217,7 @@ def _task_dict(task: sqlite3.Row) -> dict[str, Any]:
         "task_id": task["task_id"],
         "corridor_id": task["corridor_id"],
         "department": task["department"],
+        "work_group": work_group_for(task["department"]),
         "description": task["description"],
         "severity": task["severity"],
         "estimated_duration_min": task["estimated_duration_min"],
@@ -177,6 +257,17 @@ def _stored_schedule(connection: sqlite3.Connection, schedule_id: str) -> dict[s
     }
 
 
+def _current_schedule_id(connection: sqlite3.Connection) -> str | None:
+    schedule = connection.execute(
+        """
+        SELECT schedule_id FROM schedules
+        WHERE lifecycle_status IN ('active', 'approved')
+        ORDER BY created_at DESC LIMIT 1
+        """
+    ).fetchone()
+    return None if schedule is None else schedule["schedule_id"]
+
+
 def _supersede_current(connection: sqlite3.Connection) -> None:
     connection.execute(
         """
@@ -186,9 +277,34 @@ def _supersede_current(connection: sqlite3.Connection) -> None:
     )
 
 
+def _sync_task_plan_status(
+    connection: sqlite3.Connection,
+    scheduled_ids: list[str],
+    candidate_ids: list[str],
+) -> None:
+    if scheduled_ids:
+        placeholders = ",".join("?" for _ in scheduled_ids)
+        connection.execute(
+            f"UPDATE tasks SET status = 'scheduled' WHERE task_id IN ({placeholders})",
+            scheduled_ids,
+        )
+    dropped_ids = [task_id for task_id in candidate_ids if task_id not in set(scheduled_ids)]
+    if dropped_ids:
+        placeholders = ",".join("?" for _ in dropped_ids)
+        connection.execute(
+            f"""
+            UPDATE tasks SET status = 'pending'
+            WHERE task_id IN ({placeholders})
+              AND status IN ('pending', 'scheduled', 'approved')
+            """,
+            dropped_ids,
+        )
+
+
 def _persist_schedule(
     connection: sqlite3.Connection,
     result: dict[str, Any],
+    candidate_ids: list[str],
     lifecycle_status: str = "active",
 ) -> dict[str, Any]:
     _supersede_current(connection)
@@ -219,12 +335,7 @@ def _persist_schedule(
         ],
     )
     scheduled_ids = [block["task_id"] for block in result["schedule"]]
-    if scheduled_ids:
-        placeholders = ",".join("?" for _ in scheduled_ids)
-        connection.execute(
-            f"UPDATE tasks SET status = 'scheduled' WHERE task_id IN ({placeholders})",
-            scheduled_ids,
-        )
+    _sync_task_plan_status(connection, scheduled_ids, candidate_ids)
     return _stored_schedule(connection, result["schedule_id"])
 
 
@@ -232,18 +343,43 @@ def _error(status_code: int, error: str, detail: str) -> JSONResponse:
     return JSONResponse(status_code=status_code, content={"error": error, "detail": detail})
 
 
-def _generate_for_tasks(connection: sqlite3.Connection, tasks: list[sqlite3.Row]) -> dict[str, Any]:
+def _generate_for_tasks(
+    connection: sqlite3.Connection,
+    tasks: list[sqlite3.Row],
+    timetable_windows: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
     result = solve(
         [_task_dict(task) for task in tasks],
         CORRIDOR_CAPACITY,
-        TIMETABLE_WINDOWS,
+        timetable_windows if timetable_windows is not None else TIMETABLE_WINDOWS,
     )
-    return _persist_schedule(connection, result)
+    return _persist_schedule(
+        connection,
+        result,
+        candidate_ids=[task["task_id"] for task in tasks],
+    )
+
+
+def _plannable_tasks(connection: sqlite3.Connection) -> list[sqlite3.Row]:
+    return connection.execute(
+        f"""
+        SELECT * FROM tasks
+        WHERE status IN ({",".join("?" for _ in PLANNING_STATUSES)})
+        ORDER BY task_id
+        """,
+        PLANNING_STATUSES,
+    ).fetchall()
 
 
 def create_app() -> FastAPI:
     _connect_and_initialize()
-    application = FastAPI(title="RailSync AI", version="0.2.0")
+    application = FastAPI(title="RailSync AI", version="0.3.0")
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @application.exception_handler(RequestValidationError)
     async def validation_error_handler(_: Request, exception: RequestValidationError):
@@ -257,6 +393,10 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    @application.get("/coa")
+    def get_coa() -> dict[str, Any]:
+        return COA
+
     @application.get("/tasks")
     def list_tasks() -> list[dict[str, Any]]:
         with database() as connection:
@@ -268,14 +408,7 @@ def create_app() -> FastAPI:
     def generate_plan() -> dict[str, Any] | JSONResponse:
         with database() as connection:
             _refresh_task_scores(connection)
-            rows = connection.execute(
-                """
-                SELECT * FROM tasks
-                WHERE status IN ('pending', 'scheduled', 'approved')
-                ORDER BY task_id
-                """
-            ).fetchall()
-            return _generate_for_tasks(connection, rows)
+            return _generate_for_tasks(connection, _plannable_tasks(connection))
 
     @application.post("/plan/approve", response_model=None)
     def approve_plan(request: ApprovePlanRequest) -> dict[str, str] | JSONResponse:
@@ -314,43 +447,66 @@ def create_app() -> FastAPI:
             ).fetchone()
             if task is None:
                 return _error(404, "Task not found", request.task_id)
+
+            occupied_until = None
+            timetable_windows = TIMETABLE_WINDOWS
+            current_id = _current_schedule_id(connection)
+            if current_id is not None:
+                block = connection.execute(
+                    """
+                    SELECT block_end, corridor_id FROM schedule_blocks
+                    WHERE schedule_id = ? AND task_id = ?
+                    """,
+                    (current_id, request.task_id),
+                ).fetchone()
+                if block is not None:
+                    occupied_until_dt = _parse_datetime(block["block_end"]) + timedelta(
+                        minutes=request.overrun_min
+                    )
+                    occupied_until = _format_datetime(occupied_until_dt)
+                    timetable_windows = clip_windows_after(
+                        TIMETABLE_WINDOWS,
+                        block["corridor_id"],
+                        occupied_until_dt,
+                    )
+
             connection.execute(
                 "UPDATE tasks SET status = 'overrun' WHERE task_id = ?",
                 (request.task_id,),
             )
             connection.execute(
-                "INSERT INTO disruptions (disruption_id, task_id, reason, created_at) VALUES (?, ?, ?, ?)",
-                (f"DISRUPTION-{uuid4().hex}", request.task_id, request.reason, _utc_now()),
+                """
+                INSERT INTO disruptions (
+                    disruption_id, task_id, reason, overrun_min, occupied_until, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"DISRUPTION-{uuid4().hex}", request.task_id, request.reason,
+                    request.overrun_min, occupied_until, _utc_now(),
+                ),
             )
             _refresh_task_scores(connection)
-            rows = connection.execute(
-                """
-                SELECT * FROM tasks
-                WHERE status IN ('pending', 'scheduled', 'approved')
-                ORDER BY task_id
-                """
-            ).fetchall()
-            result = _generate_for_tasks(connection, rows)
+            result = _generate_for_tasks(
+                connection,
+                _plannable_tasks(connection),
+                timetable_windows,
+            )
             return {
                 "message": "Plan re-optimized after disruption",
                 "schedule_id": result["schedule_id"],
                 "reoptimization_required": True,
                 "lifecycle_status": result["lifecycle_status"],
+                "overrun_min": request.overrun_min,
+                "occupied_until": occupied_until,
             }
 
     @application.get("/plan/current", response_model=None)
     def current_plan() -> dict[str, Any] | JSONResponse:
         with database() as connection:
-            schedule = connection.execute(
-                """
-                SELECT schedule_id FROM schedules
-                WHERE lifecycle_status IN ('active', 'approved')
-                ORDER BY created_at DESC LIMIT 1
-                """
-            ).fetchone()
-            if schedule is None:
+            schedule_id = _current_schedule_id(connection)
+            if schedule_id is None:
                 return _error(404, "No current plan", "No active or approved schedule exists")
-            return _stored_schedule(connection, schedule["schedule_id"])
+            return _stored_schedule(connection, schedule_id)
 
     return application
 

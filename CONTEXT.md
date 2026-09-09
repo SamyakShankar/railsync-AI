@@ -34,8 +34,12 @@ BUILD (real, working):
   schematic corridor view (SVG/React, NOT Mapbox GL)
 - Manual "re-optimize" trigger (poll/refetch, NOT Socket.io push)
 - Human-in-the-loop approve/reject action on generated plans
-- A disruption/overrun trigger that forces re-optimization
+- A disruption/overrun trigger that forces re-optimization; overrun minutes
+  (default 40) keep that corridor occupied so remaining jobs use a shorter window
 - Synthetic dataset shaped like TMS/SMMS/TDMS records (no real data)
+- Synthetic COA file (`data/coa.json`) for per-corridor free windows and capacity
+- Multi-department bundling: different work groups may share a closure; same
+  group cannot overlap on one corridor
 
 DO NOT BUILD:
 - Prophet / any forecasting model

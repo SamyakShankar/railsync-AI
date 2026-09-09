@@ -2,8 +2,7 @@
 
 **Owner:** data team.
 
-**Must produce:** synthetic TMS/SMMS/TDMS-shaped Task fixtures conforming to the frozen Task entity schema, beginning with `sample_data.json`.
+- `sample_data.json` — synthetic TMS/SMMS/TDMS-shaped Task fixtures
+- `coa.json` — synthetic Control Office Application corridor windows, traffic, and parallel-gang capacity
 
-**Do not touch outside this folder:** no API routes, solver logic, frontend code, or integration code.
-
-**Depends on:** the Task entity contract in `CONTRACTS.md`. `backend/` and `optimizer/` consume these records.
+Not live Indian Railways data. `backend/` loads both files. Frontend should read live values from `GET /tasks` and `GET /coa`.

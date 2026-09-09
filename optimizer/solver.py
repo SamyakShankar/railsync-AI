@@ -18,6 +18,14 @@ def _format_datetime(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _work_group(task: dict[str, Any]) -> str:
+    if isinstance(task.get("work_group"), str) and task["work_group"]:
+        return task["work_group"]
+    if isinstance(task.get("department"), str) and task["department"]:
+        return task["department"]
+    return str(task["task_id"])
+
+
 def _window_bounds(window: dict[str, Any]) -> tuple[datetime, datetime]:
     start = window.get("window_start", window.get("start"))
     end = window.get("window_end", window.get("end"))
@@ -38,8 +46,11 @@ def solve(
     """Return a priority-maximizing, capacity-constrained schedule.
 
     Each task may be scheduled once in one of its corridor's timetable
-    windows, or left unscheduled. Time is represented as integer minutes from
-    the earliest timetable start so CP-SAT can model arbitrary ISO datetimes.
+    windows, or left unscheduled. Tasks in the same work group cannot overlap
+    on a corridor (zero-overlap safety). Different groups may share a closure
+    up to that corridor's capacity (department bundling). Time is represented
+    as integer minutes from the earliest timetable start so CP-SAT can model
+    arbitrary ISO datetimes.
     """
     schedule_id = f"SCHEDULE-{uuid4().hex}"
     task_list = list(tasks)
@@ -64,11 +75,13 @@ def solve(
     origin = min(start for start, _ in all_windows)
     model = cp_model.CpModel()
     placements: dict[str, list[dict[str, Any]]] = {}
-    corridor_intervals: dict[str, list[tuple[cp_model.IntervalVar, int]]] = {}
+    corridor_intervals: dict[str, list[cp_model.IntervalVar]] = {}
+    group_intervals: dict[tuple[str, str], list[cp_model.IntervalVar]] = {}
 
     for task_index, task in enumerate(task_list):
         task_id = task["task_id"]
         corridor_id = task["corridor_id"]
+        work_group = _work_group(task)
         duration = int(task["estimated_duration_min"])
         if duration <= 0:
             raise ValueError(f"Task {task_id} duration must be positive")
@@ -105,19 +118,21 @@ def solve(
                 "window_start": window_start,
             }
             task_placements.append(placement)
-            corridor_intervals.setdefault(corridor_id, []).append(
-                (interval, int(corridor_capacity.get(corridor_id, 1)))
-            )
+            corridor_intervals.setdefault(corridor_id, []).append(interval)
+            group_intervals.setdefault((corridor_id, work_group), []).append(interval)
 
         placements[task_id] = task_placements
         if task_placements:
             model.Add(sum(placement["presence"] for placement in task_placements) <= 1)
 
-    for corridor_id, interval_entries in corridor_intervals.items():
+    for intervals in group_intervals.values():
+        if len(intervals) > 1:
+            model.AddNoOverlap(intervals)
+
+    for corridor_id, intervals in corridor_intervals.items():
         capacity = int(corridor_capacity.get(corridor_id, 1))
         if capacity <= 0:
             raise ValueError(f"Corridor {corridor_id} capacity must be positive")
-        intervals = [interval for interval, _ in interval_entries]
         if capacity == 1:
             model.AddNoOverlap(intervals)
         else:
