@@ -374,9 +374,13 @@ def _plannable_tasks(connection: sqlite3.Connection) -> list[sqlite3.Row]:
 def create_app() -> FastAPI:
     _connect_and_initialize()
     application = FastAPI(title="RailSync AI", version="0.3.0")
+    allowed_origins = os.getenv(
+        "RAILSYNC_CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=[origin.strip() for origin in allowed_origins if origin.strip()],
         allow_methods=["*"],
         allow_headers=["*"],
     )
