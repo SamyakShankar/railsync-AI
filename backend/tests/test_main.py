@@ -1,0 +1,108 @@
+import tempfile
+import unittest
+from datetime import datetime
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+import backend.main as backend_main
+
+
+class BackendApiTests(unittest.TestCase):
+    def setUp(self):
+        self.database_file = Path(tempfile.mktemp(suffix=".db"))
+        backend_main.DATABASE_PATH = self.database_file
+        self.client = TestClient(backend_main.create_app())
+
+    def tearDown(self):
+        self.database_file.unlink(missing_ok=True)
+
+    def test_health_endpoint(self):
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_tasks_match_contract_schema(self):
+        response = self.client.get("/tasks")
+        self.assertEqual(response.status_code, 200)
+        expected = {
+            "task_id", "corridor_id", "department", "description", "severity",
+            "estimated_duration_min", "last_maintenance_date", "priority_score", "status",
+        }
+        self.assertTrue(response.json())
+        for task in response.json():
+            self.assertEqual(set(task), expected)
+            self.assertGreaterEqual(task["priority_score"], 0)
+            self.assertLessEqual(task["priority_score"], 100)
+
+    def test_generate_plan_and_no_same_corridor_overlap(self):
+        response = self.client.post("/plan/generate")
+        self.assertEqual(response.status_code, 200)
+        plan = response.json()
+        self.assertTrue(plan["schedule_id"])
+        self.assertEqual(plan["lifecycle_status"], "active")
+        for corridor in {block["corridor_id"] for block in plan["schedule"]}:
+            blocks = sorted(
+                (block for block in plan["schedule"] if block["corridor_id"] == corridor),
+                key=lambda block: block["block_start"],
+            )
+            for first, second in zip(blocks, blocks[1:]):
+                self.assertLessEqual(
+                    datetime.fromisoformat(first["block_end"].replace("Z", "+00:00")),
+                    datetime.fromisoformat(second["block_start"].replace("Z", "+00:00")),
+                )
+
+    def test_approval_rejects_unknown_schedule_id(self):
+        response = self.client.post(
+            "/plan/approve", json={"schedule_id": "UNKNOWN"}
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(set(response.json()), {"error", "detail"})
+
+    def test_successful_approval(self):
+        schedule_id = self.client.post("/plan/generate").json()["schedule_id"]
+        response = self.client.post(
+            "/plan/approve", json={"schedule_id": schedule_id}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"schedule_id": schedule_id, "status": "approved"})
+        current = self.client.get("/plan/current").json()
+        self.assertEqual(current["schedule_id"], schedule_id)
+        self.assertEqual(current["lifecycle_status"], "approved")
+
+    def test_disruption_creates_new_schedule_and_updates_lifecycle(self):
+        old_schedule_id = self.client.post("/plan/generate").json()["schedule_id"]
+        response = self.client.post(
+            "/disrupt",
+            json={"task_id": "TASK-001", "reason": "Block overrun"},
+        )
+        self.assertEqual(response.status_code, 200)
+        disruption = response.json()
+        self.assertNotEqual(disruption["schedule_id"], old_schedule_id)
+        self.assertEqual(disruption["lifecycle_status"], "active")
+        self.assertTrue(disruption["reoptimization_required"])
+
+        with backend_main.database() as connection:
+            old = connection.execute(
+                "SELECT lifecycle_status FROM schedules WHERE schedule_id = ?",
+                (old_schedule_id,),
+            ).fetchone()
+            task = connection.execute(
+                "SELECT status FROM tasks WHERE task_id = 'TASK-001'"
+            ).fetchone()
+        self.assertEqual(old["lifecycle_status"], "superseded")
+        self.assertEqual(task["status"], "overrun")
+
+        current = self.client.get("/plan/current").json()
+        self.assertEqual(current["schedule_id"], disruption["schedule_id"])
+        self.assertEqual(current["lifecycle_status"], "active")
+
+    def test_current_plan_returns_newest_active_or_approved_schedule(self):
+        generated = self.client.post("/plan/generate").json()
+        current = self.client.get("/plan/current")
+        self.assertEqual(current.status_code, 200)
+        self.assertEqual(current.json()["schedule_id"], generated["schedule_id"])
+
+
+if __name__ == "__main__":
+    unittest.main()

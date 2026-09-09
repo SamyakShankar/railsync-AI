@@ -34,27 +34,34 @@ OUTPUT:
 }
 ```
 
+The optimizer `status` describes solve feasibility only. When a schedule is
+stored by the backend, the stored schedule also has a separate
+`lifecycle_status`: `active | approved | superseded`. These statuses must not
+be conflated; a feasible schedule can later become superseded after a newer
+schedule is generated.
+
 ## Backend API endpoints (backend/ owns implementation, frontend/ consumes)
 - `GET  /tasks` → list of Task entities
-- `POST /plan/generate` → runs optimizer and returns a generated schedule, including its `schedule_id` (see above)
+- `POST /plan/generate` → runs optimizer and returns a generated stored schedule, including its `schedule_id` and `lifecycle_status` (see above)
 - `POST /plan/approve` → body: `{ "schedule_id": "string" }` → marks that schedule as approved
 - `POST /disrupt` → body: `{ "task_id": "string", "reason": "string" }` → marks the affected task as overrun, triggers re-optimization, and returns the newly generated schedule ID:
   ```json
   {
     "message": "string",
     "schedule_id": "string",
-    "reoptimization_required": true
+    "reoptimization_required": true,
+    "lifecycle_status": "active | approved | superseded"
   }
   ```
-- `GET  /plan/current` → latest approved/active schedule
+- `GET  /plan/current` → latest approved/active stored schedule, including `schedule_id` and `lifecycle_status`
 
 ### Plan flow
 
-1. **GENERATE PLAN** runs the optimizer and returns a `schedule_id` with the generated schedule.
+1. **GENERATE PLAN** runs the optimizer and stores the result, returning a `schedule_id` and `lifecycle_status` of `active` with the generated schedule.
 2. The frontend can display that schedule.
 3. **APPROVE** receives the `schedule_id` and marks that schedule as approved.
 4. **DISRUPT** receives a task and reason, marks the affected task as overrun, and causes re-optimization.
-5. **DISRUPT** returns the new `schedule_id` and indicates re-optimization with `reoptimization_required`.
+5. **DISRUPT** supersedes the previous stored schedule, stores the new schedule as `active`, and returns the new `schedule_id`, `lifecycle_status`, and `reoptimization_required`.
 6. The frontend fetches and displays the current plan.
 
 ## Error format (all endpoints)
