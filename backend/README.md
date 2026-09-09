@@ -16,9 +16,9 @@ python3 -m uvicorn backend.main:app --reload --app-dir .
 API: `http://127.0.0.1:8000`  
 Docs: `http://127.0.0.1:8000/docs`
 
-If an old `backend/railsync.db` exists from before the disruption-table change, delete it and start again.
+CORS defaults to local Vite ports (`RAILSYNC_CORS_ORIGINS` to override).
 
-CORS is open so the frontend on another port can call these routes.
+Older SQLite files are migrated on startup (`overrun_min` / `occupied_until` on `disruptions`). You do not need to delete `backend/railsync.db` for that change.
 
 ## Tests
 

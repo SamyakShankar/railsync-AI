@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from collections import defaultdict
@@ -238,6 +239,58 @@ class BackendApiTests(unittest.TestCase):
         current = self.client.get("/plan/current")
         self.assertEqual(current.status_code, 200)
         self.assertEqual(current.json()["schedule_id"], generated["schedule_id"])
+
+    def test_reject_supersedes_plan_and_returns_jobs_to_pending(self):
+        plan = self.client.post("/plan/generate").json()
+        scheduled_ids = {block["task_id"] for block in plan["schedule"]}
+        response = self.client.post(
+            "/plan/reject", json={"schedule_id": plan["schedule_id"]}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"schedule_id": plan["schedule_id"], "lifecycle_status": "superseded"},
+        )
+        self.assertEqual(self.client.get("/plan/current").status_code, 404)
+        tasks = {task["task_id"]: task for task in self.client.get("/tasks").json()}
+        for task_id in scheduled_ids:
+            self.assertEqual(tasks[task_id]["status"], "pending")
+
+    def test_disruption_reports_plan_delta_for_the_frontend(self):
+        old_plan = self.client.post("/plan/generate").json()
+        target = old_plan["schedule"][0]
+        disruption = self.client.post(
+            "/disrupt",
+            json={"task_id": target["task_id"], "reason": "Block overrun"},
+        ).json()
+        self.assertEqual(disruption["previous_schedule_id"], old_plan["schedule_id"])
+        self.assertIn(target["task_id"], disruption["displaced_task_ids"])
+        self.assertIsInstance(disruption["moved_task_ids"], list)
+        self.assertIsInstance(disruption["added_task_ids"], list)
+
+    def test_startup_migrates_legacy_disruptions_table(self):
+        self.tearDown()
+        self.database_file = Path(tempfile.mktemp(suffix=".db"))
+        backend_main.DATABASE_PATH = self.database_file
+        with sqlite3.connect(self.database_file) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE disruptions (
+                    disruption_id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                """
+            )
+        self.client = TestClient(backend_main.create_app())
+        plan = self.client.post("/plan/generate").json()
+        response = self.client.post(
+            "/disrupt",
+            json={"task_id": plan["schedule"][0]["task_id"], "reason": "Block overrun"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("occupied_until", response.json())
 
 
 if __name__ == "__main__":

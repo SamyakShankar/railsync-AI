@@ -90,6 +90,10 @@ class ApprovePlanRequest(BaseModel):
     schedule_id: str
 
 
+class RejectPlanRequest(BaseModel):
+    schedule_id: str
+
+
 class DisruptRequest(BaseModel):
     task_id: str
     reason: str
@@ -122,6 +126,25 @@ def clip_windows_after(
             updated["window_start"] = _format_datetime(new_start)
             clipped.append(updated)
     return clipped
+
+
+def _table_columns(connection: sqlite3.Connection, table: str) -> set[str]:
+    return {
+        row["name"]
+        for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+
+
+def _add_column_if_missing(
+    connection: sqlite3.Connection, table: str, column: str, definition: str
+) -> None:
+    if column not in _table_columns(connection, table):
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def _migrate_schema(connection: sqlite3.Connection) -> None:
+    _add_column_if_missing(connection, "disruptions", "overrun_min", "INTEGER NOT NULL DEFAULT 40")
+    _add_column_if_missing(connection, "disruptions", "occupied_until", "TEXT")
 
 
 @contextmanager
@@ -171,12 +194,13 @@ def _connect_and_initialize() -> None:
                 disruption_id TEXT PRIMARY KEY,
                 task_id TEXT NOT NULL,
                 reason TEXT NOT NULL,
-                overrun_min INTEGER NOT NULL,
+                overrun_min INTEGER NOT NULL DEFAULT 40,
                 occupied_until TEXT,
                 created_at TEXT NOT NULL
             );
             """
         )
+        _migrate_schema(connection)
         task_count = connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
         if task_count == 0:
             with SAMPLE_DATA_PATH.open(encoding="utf-8") as sample_file:
@@ -268,6 +292,43 @@ def _current_schedule_id(connection: sqlite3.Connection) -> str | None:
     return None if schedule is None else schedule["schedule_id"]
 
 
+def _block_key(block: dict[str, Any]) -> tuple[str, str, str]:
+    return (block["block_start"], block["block_end"], block["corridor_id"])
+
+
+def _plan_change_summary(
+    previous: dict[str, Any] | None,
+    current: dict[str, Any],
+) -> dict[str, Any]:
+    current_blocks = {
+        block["task_id"]: _block_key(block) for block in current["schedule"]
+    }
+    if previous is None:
+        return {
+            "previous_schedule_id": None,
+            "displaced_task_ids": [],
+            "moved_task_ids": [],
+            "added_task_ids": sorted(current_blocks),
+        }
+    previous_blocks = {
+        block["task_id"]: _block_key(block) for block in previous["schedule"]
+    }
+    return {
+        "previous_schedule_id": previous["schedule_id"],
+        "displaced_task_ids": sorted(
+            task_id for task_id in previous_blocks if task_id not in current_blocks
+        ),
+        "moved_task_ids": sorted(
+            task_id
+            for task_id, key in current_blocks.items()
+            if task_id in previous_blocks and previous_blocks[task_id] != key
+        ),
+        "added_task_ids": sorted(
+            task_id for task_id in current_blocks if task_id not in previous_blocks
+        ),
+    }
+
+
 def _supersede_current(connection: sqlite3.Connection) -> None:
     connection.execute(
         """
@@ -288,7 +349,8 @@ def _sync_task_plan_status(
             f"UPDATE tasks SET status = 'scheduled' WHERE task_id IN ({placeholders})",
             scheduled_ids,
         )
-    dropped_ids = [task_id for task_id in candidate_ids if task_id not in set(scheduled_ids)]
+    scheduled_set = set(scheduled_ids)
+    dropped_ids = [task_id for task_id in candidate_ids if task_id not in scheduled_set]
     if dropped_ids:
         placeholders = ",".join("?" for _ in dropped_ids)
         connection.execute(
@@ -373,7 +435,7 @@ def _plannable_tasks(connection: sqlite3.Connection) -> list[sqlite3.Row]:
 
 def create_app() -> FastAPI:
     _connect_and_initialize()
-    application = FastAPI(title="RailSync AI", version="0.3.0")
+    application = FastAPI(title="RailSync AI", version="0.4.0")
     allowed_origins = os.getenv(
         "RAILSYNC_CORS_ORIGINS",
         "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
@@ -443,6 +505,36 @@ def create_app() -> FastAPI:
                 "lifecycle_status": "approved",
             }
 
+    @application.post("/plan/reject", response_model=None)
+    def reject_plan(request: RejectPlanRequest) -> dict[str, str] | JSONResponse:
+        with database() as connection:
+            schedule = connection.execute(
+                "SELECT * FROM schedules WHERE schedule_id = ?",
+                (request.schedule_id,),
+            ).fetchone()
+            if schedule is None:
+                return _error(404, "Schedule not found", request.schedule_id)
+            if schedule["lifecycle_status"] == "superseded":
+                return _error(409, "Schedule is superseded", request.schedule_id)
+            connection.execute(
+                "UPDATE schedules SET lifecycle_status = 'superseded' WHERE schedule_id = ?",
+                (request.schedule_id,),
+            )
+            connection.execute(
+                """
+                UPDATE tasks SET status = 'pending'
+                WHERE status IN ('pending', 'scheduled', 'approved')
+                  AND task_id IN (
+                    SELECT task_id FROM schedule_blocks WHERE schedule_id = ?
+                  )
+                """,
+                (request.schedule_id,),
+            )
+            return {
+                "schedule_id": request.schedule_id,
+                "lifecycle_status": "superseded",
+            }
+
     @application.post("/disrupt", response_model=None)
     def disrupt(request: DisruptRequest) -> dict[str, Any] | JSONResponse:
         with database() as connection:
@@ -455,6 +547,9 @@ def create_app() -> FastAPI:
             occupied_until = None
             timetable_windows = TIMETABLE_WINDOWS
             current_id = _current_schedule_id(connection)
+            previous_plan = (
+                _stored_schedule(connection, current_id) if current_id is not None else None
+            )
             if current_id is not None:
                 block = connection.execute(
                     """
@@ -502,6 +597,7 @@ def create_app() -> FastAPI:
                 "lifecycle_status": result["lifecycle_status"],
                 "overrun_min": request.overrun_min,
                 "occupied_until": occupied_until,
+                **_plan_change_summary(previous_plan, result),
             }
 
     @application.get("/plan/current", response_model=None)

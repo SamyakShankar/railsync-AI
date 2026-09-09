@@ -30,12 +30,15 @@ BUILD (real, working):
 - Rule-based priority score (weighted formula: severity, time-since-last-
   maintenance, corridor traffic) — NOT a trained ML model
 - FastAPI backend, SQLite or Postgres (not MongoDB)
-- React + Tailwind frontend, two views: schedule/Gantt, and a simplified
-  schematic corridor view (SVG/React, NOT Mapbox GL)
+- React + Tailwind frontend: two screens only — Block Planning (schedule/Gantt
+  + task list + generate/approve/reject/disrupt) and a simplified schematic
+  corridor view (SVG/React, NOT Mapbox GL). Other nav labels are out of scope.
 - Manual "re-optimize" trigger (poll/refetch, NOT Socket.io push)
 - Human-in-the-loop approve/reject action on generated plans
 - A disruption/overrun trigger that forces re-optimization; overrun minutes
-  (default 40) keep that corridor occupied so remaining jobs use a shorter window
+  (default 40) keep that corridor occupied so remaining jobs use a shorter window.
+  The disrupt response names which jobs moved, were added, or dropped so the UI
+  can highlight the change.
 - Synthetic dataset shaped like TMS/SMMS/TDMS records (no real data)
 - Synthetic COA file (`data/coa.json`) for per-corridor free windows and capacity
 - Multi-department bundling: different work groups may share a closure; same
@@ -47,13 +50,18 @@ DO NOT BUILD:
 - MongoDB, Redis, Celery, Socket.io, Docker, AWS deployment, CI/CD
 - Full Mapbox GL geospatial rendering
 - Any real integration with actual Indian Railways systems
+- A multi-page government portal (Overview, Maintenance Requests CRUD,
+  Assets & Defects, Conflict Resolution, Reports). Those are not APIs we have.
+- Defect heatmaps or a "digital twin" beyond the two planning views
+- Ingesting a brand-new emergency task at runtime (demo disruption is an
+  overrun on an already scheduled block)
 
 ## The one demo flow every module must serve
 1. Load synthetic dataset (15-20 tasks, few corridors)
 2. Show priority-scored task list
 3. "Generate Plan" → CP-SAT produces conflict-free block schedule
 4. Controller reviews on Gantt + corridor view, approves
-5. Trigger a disruption (block overrun / new emergency task)
+5. Trigger a disruption (block overrun on a scheduled job)
 6. System re-optimizes, shows the new schedule, highlights the change
 
 Nothing gets built that doesn't serve one of these six steps.

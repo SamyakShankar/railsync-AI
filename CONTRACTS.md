@@ -81,6 +81,7 @@ Jobs that were candidates for a plan but did not get a slot are stored as
 - `GET  /tasks` → list of Task entities
 - `POST /plan/generate` → runs optimizer and returns a generated stored schedule, including its `schedule_id` and `lifecycle_status` (see above)
 - `POST /plan/approve` → body: `{ "schedule_id": "string" }` → marks that schedule as approved
+- `POST /plan/reject` → body: `{ "schedule_id": "string" }` → controller rejects the recommendation. The schedule becomes `superseded` and its jobs return to `pending`. No new plan is generated.
 - `POST /disrupt` → body: `{ "task_id": "string", "reason": "string", "overrun_min": "int, optional, default 40" }` → marks the affected task as overrun, shrinks that corridor's remaining COA window by `overrun_min` past the old block end when the task was scheduled, triggers re-optimization, and returns:
   ```json
   {
@@ -89,19 +90,24 @@ Jobs that were candidates for a plan but did not get a slot are stored as
     "reoptimization_required": true,
     "lifecycle_status": "active | approved | superseded",
     "overrun_min": "int",
-    "occupied_until": "ISO datetime | null"
+    "occupied_until": "ISO datetime | null",
+    "previous_schedule_id": "string | null",
+    "displaced_task_ids": ["string"],
+    "moved_task_ids": ["string"],
+    "added_task_ids": ["string"]
   }
   ```
   `occupied_until` is null when the disrupted task had no block on the current plan.
+  Change lists compare the previous current plan to the new one so the UI can highlight the delta.
 - `GET  /plan/current` → latest approved/active stored schedule, including `schedule_id` and `lifecycle_status`
 
 ### Plan flow
 
 1. **GENERATE PLAN** runs the optimizer and stores the result, returning a `schedule_id` and `lifecycle_status` of `active` with the generated schedule.
 2. The frontend can display that schedule against `GET /coa` windows.
-3. **APPROVE** receives the `schedule_id` and marks that schedule as approved.
+3. **APPROVE** receives the `schedule_id` and marks that schedule as approved. **REJECT** supersedes it and returns those jobs to `pending`.
 4. **DISRUPT** receives a task and reason (and optional overrun minutes), marks the affected task as overrun, occupies that corridor until `block_end + overrun_min`, and causes re-optimization of the remaining jobs into the clipped windows.
-5. **DISRUPT** supersedes the previous stored schedule, stores the new schedule as `active`, and returns the new `schedule_id`, `lifecycle_status`, and `reoptimization_required`.
+5. **DISRUPT** supersedes the previous stored schedule, stores the new schedule as `active`, and returns the new `schedule_id`, change lists, `lifecycle_status`, and `reoptimization_required`.
 6. The frontend fetches and displays the current plan.
 
 ## Error format (all endpoints)
