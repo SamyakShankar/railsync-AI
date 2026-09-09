@@ -68,3 +68,38 @@ class SolverTests(unittest.TestCase):
         second = solve(tasks, {"C1": 1}, windows)
 
         self.assertNotEqual(first["schedule_id"], second["schedule_id"])
+
+    def test_capacity_above_one_allows_parallel_blocks_up_to_capacity(self):
+        result = solve(
+            [_task("TASK-1", 60, 80), _task("TASK-2", 60, 70)],
+            {"C1": 2},
+            [_window("2026-09-09T01:00:00Z", "2026-09-09T02:00:00Z")],
+        )
+
+        self.assertEqual({block["task_id"] for block in result["schedule"]}, {"TASK-1", "TASK-2"})
+        self.assertEqual(result["unscheduled_task_ids"], [])
+        self.assertTrue(
+            all(
+                block["block_start"] == "2026-09-09T01:00:00Z"
+                and block["block_end"] == "2026-09-09T02:00:00Z"
+                for block in result["schedule"]
+            )
+        )
+
+    def test_timetable_window_accepts_exact_fit_and_rejects_overflow(self):
+        result = solve(
+            [_task("EXACT", 60, 80), _task("TOO-LONG", 61, 100)],
+            {"C1": 1},
+            [_window("2026-09-09T01:00:00Z", "2026-09-09T02:00:00Z")],
+        )
+
+        self.assertEqual(
+            result["schedule"],
+            [{
+                "task_id": "EXACT",
+                "block_start": "2026-09-09T01:00:00Z",
+                "block_end": "2026-09-09T02:00:00Z",
+                "corridor_id": "C1",
+            }],
+        )
+        self.assertEqual(result["unscheduled_task_ids"], ["TOO-LONG"])

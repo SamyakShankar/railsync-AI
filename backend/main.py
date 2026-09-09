@@ -269,7 +269,11 @@ def create_app() -> FastAPI:
         with database() as connection:
             _refresh_task_scores(connection)
             rows = connection.execute(
-                "SELECT * FROM tasks WHERE status = 'pending' ORDER BY task_id"
+                """
+                SELECT * FROM tasks
+                WHERE status IN ('pending', 'scheduled', 'approved')
+                ORDER BY task_id
+                """
             ).fetchall()
             return _generate_for_tasks(connection, rows)
 
@@ -297,7 +301,10 @@ def create_app() -> FastAPI:
                 """,
                 (request.schedule_id,),
             )
-            return {"schedule_id": request.schedule_id, "status": "approved"}
+            return {
+                "schedule_id": request.schedule_id,
+                "lifecycle_status": "approved",
+            }
 
     @application.post("/disrupt", response_model=None)
     def disrupt(request: DisruptRequest) -> dict[str, Any] | JSONResponse:
@@ -317,7 +324,11 @@ def create_app() -> FastAPI:
             )
             _refresh_task_scores(connection)
             rows = connection.execute(
-                "SELECT * FROM tasks WHERE status != 'overrun' ORDER BY task_id"
+                """
+                SELECT * FROM tasks
+                WHERE status IN ('pending', 'scheduled', 'approved')
+                ORDER BY task_id
+                """
             ).fetchall()
             result = _generate_for_tasks(connection, rows)
             return {

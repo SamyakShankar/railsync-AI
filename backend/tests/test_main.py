@@ -52,6 +52,15 @@ class BackendApiTests(unittest.TestCase):
                     datetime.fromisoformat(second["block_start"].replace("Z", "+00:00")),
                 )
 
+    def test_generate_plan_twice_keeps_schedulable_tasks_in_the_plan(self):
+        first = self.client.post("/plan/generate").json()
+        second = self.client.post("/plan/generate").json()
+
+        self.assertTrue(first["schedule"])
+        self.assertTrue(second["schedule"])
+        self.assertNotEqual(first["schedule_id"], second["schedule_id"])
+        self.assertEqual(second["lifecycle_status"], "active")
+
     def test_approval_rejects_unknown_schedule_id(self):
         response = self.client.post(
             "/plan/approve", json={"schedule_id": "UNKNOWN"}
@@ -65,7 +74,10 @@ class BackendApiTests(unittest.TestCase):
             "/plan/approve", json={"schedule_id": schedule_id}
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"schedule_id": schedule_id, "status": "approved"})
+        self.assertEqual(
+            response.json(),
+            {"schedule_id": schedule_id, "lifecycle_status": "approved"},
+        )
         current = self.client.get("/plan/current").json()
         self.assertEqual(current["schedule_id"], schedule_id)
         self.assertEqual(current["lifecycle_status"], "approved")
@@ -96,6 +108,56 @@ class BackendApiTests(unittest.TestCase):
         current = self.client.get("/plan/current").json()
         self.assertEqual(current["schedule_id"], disruption["schedule_id"])
         self.assertEqual(current["lifecycle_status"], "active")
+
+    def test_disruption_excludes_done_tasks_from_reoptimization(self):
+        with backend_main.database() as connection:
+            connection.execute(
+                "UPDATE tasks SET status = 'done' WHERE task_id = 'TASK-002'"
+            )
+
+        response = self.client.post(
+            "/disrupt",
+            json={"task_id": "TASK-001", "reason": "Block overrun"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        plan = self.client.get("/plan/current").json()
+        self.assertNotIn(
+            "TASK-002", {block["task_id"] for block in plan["schedule"]}
+        )
+        with backend_main.database() as connection:
+            completed_task = connection.execute(
+                "SELECT status FROM tasks WHERE task_id = 'TASK-002'"
+            ).fetchone()
+        self.assertEqual(completed_task["status"], "done")
+
+    def test_approved_schedule_is_superseded_by_disruption_reoptimization(self):
+        old_plan = self.client.post("/plan/generate").json()
+        approval = self.client.post(
+            "/plan/approve", json={"schedule_id": old_plan["schedule_id"]}
+        ).json()
+        disruption = self.client.post(
+            "/disrupt",
+            json={
+                "task_id": old_plan["schedule"][0]["task_id"],
+                "reason": "Block overrun",
+            },
+        ).json()
+
+        self.assertEqual(approval["lifecycle_status"], "approved")
+        self.assertNotIn("status", approval)
+        with backend_main.database() as connection:
+            old = connection.execute(
+                "SELECT lifecycle_status FROM schedules WHERE schedule_id = ?",
+                (old_plan["schedule_id"],),
+            ).fetchone()
+            new = connection.execute(
+                "SELECT lifecycle_status, solve_status FROM schedules WHERE schedule_id = ?",
+                (disruption["schedule_id"],),
+            ).fetchone()
+        self.assertEqual(old["lifecycle_status"], "superseded")
+        self.assertEqual(new["lifecycle_status"], "active")
+        self.assertEqual(new["solve_status"], "feasible")
 
     def test_current_plan_returns_newest_active_or_approved_schedule(self):
         generated = self.client.post("/plan/generate").json()

@@ -7,7 +7,7 @@
     "severity": 5,
     "estimated_duration_min": 90,
     "last_maintenance_date": "2026-05-20",
-    "priority_score": 94.0,
+    "priority_score": 88.67,
     "status": "pending"
   },
   {
@@ -18,7 +18,7 @@
     "severity": 4,
     "estimated_duration_min": 60,
     "last_maintenance_date": "2026-06-12",
-    "priority_score": 78.5,
+    "priority_score": 74.83,
     "status": "pending"
   },
   {
@@ -29,8 +29,8 @@
     "severity": 3,
     "estimated_duration_min": 75,
     "last_maintenance_date": "2026-07-01",
-    "priority_score": 64.0,
-    "status": "scheduled"
+    "priority_score": 57.67,
+    "status": "pending"
   },
   {
     "task_id": "TASK-004",
@@ -40,8 +40,8 @@
     "severity": 2,
     "estimated_duration_min": 45,
     "last_maintenance_date": "2026-08-05",
-    "priority_score": 42.5,
-    "status": "approved"
+    "priority_score": 41.83,
+    "status": "pending"
   },
   {
     "task_id": "TASK-005",
@@ -51,7 +51,150 @@
     "severity": 5,
     "estimated_duration_min": 30,
     "last_maintenance_date": "2026-04-18",
-    "priority_score": 91.5,
+    "priority_score": 86.0,
     "status": "overrun"
+  },
+  {
+    "task_id": "TASK-006",
+    "corridor_id": "C1",
+    "department": "Engineering",
+    "description": "Rail weld inspection and repair preparation",
+    "severity": 5,
+    "estimated_duration_min": 120,
+    "last_maintenance_date": "2026-03-01",
+    "priority_score": 100.0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-007",
+    "corridor_id": "C1",
+    "department": "Electrical",
+    "description": "Traction return-current bond inspection",
+    "severity": 4,
+    "estimated_duration_min": 75,
+    "last_maintenance_date": "2026-04-01",
+    "priority_score": 86.83,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-008",
+    "corridor_id": "C1",
+    "department": "Track Maintenance",
+    "description": "Ballast profile measurement",
+    "severity": 3,
+    "estimated_duration_min": 45,
+    "last_maintenance_date": "2026-08-20",
+    "priority_score": 53.33,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-009",
+    "corridor_id": "C1",
+    "department": "Signal & Telecom",
+    "description": "Track-circuit cable insulation test",
+    "severity": 5,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-07-01",
+    "priority_score": 81.67,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-010",
+    "corridor_id": "C2",
+    "department": "Engineering",
+    "description": "Bridge bearing inspection",
+    "severity": 5,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-04-15",
+    "priority_score": 90.5,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-011",
+    "corridor_id": "C2",
+    "department": "Electrical",
+    "description": "Substation feeder thermography",
+    "severity": 3,
+    "estimated_duration_min": 60,
+    "last_maintenance_date": "2026-06-15",
+    "priority_score": 60.33,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-012",
+    "corridor_id": "C2",
+    "department": "Signal & Telecom",
+    "description": "Relay room battery and alarm check",
+    "severity": 4,
+    "estimated_duration_min": 120,
+    "last_maintenance_date": "2026-07-15",
+    "priority_score": 65.33,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-013",
+    "corridor_id": "C2",
+    "department": "Track Maintenance",
+    "description": "Drainage and cess clearing survey",
+    "severity": 2,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-08-05",
+    "priority_score": 41.83,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-014",
+    "corridor_id": "C3",
+    "department": "Engineering",
+    "description": "Level-crossing surface condition inspection",
+    "severity": 5,
+    "estimated_duration_min": 75,
+    "last_maintenance_date": "2026-03-01",
+    "priority_score": 92.0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-015",
+    "corridor_id": "C3",
+    "department": "Electrical",
+    "description": "Cable route earthing continuity test",
+    "severity": 3,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-06-01",
+    "priority_score": 58.67,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-016",
+    "corridor_id": "C3",
+    "department": "Signal & Telecom",
+    "description": "Point machine drive-current analysis",
+    "severity": 4,
+    "estimated_duration_min": 120,
+    "last_maintenance_date": "2026-05-15",
+    "priority_score": 71.5,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-017",
+    "corridor_id": "C3",
+    "department": "Track Maintenance",
+    "description": "Rail joint and fastening inspection",
+    "severity": 2,
+    "estimated_duration_min": 60,
+    "last_maintenance_date": "2026-08-20",
+    "priority_score": 35.33,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-018",
+    "corridor_id": "C3",
+    "department": "Engineering",
+    "description": "Platform drainage chamber inspection",
+    "severity": 5,
+    "estimated_duration_min": 45,
+    "last_maintenance_date": "2026-04-01",
+    "priority_score": 88.83,
+    "status": "pending"
   }
 ]
