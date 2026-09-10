@@ -27,7 +27,7 @@
     },
     'network': {
       title: 'Network & Train Operations',
-      subtitle: 'Agra Cantt – New Delhi Corridor Schematic',
+      subtitle: 'Synthetic stations, corridors, and train occupancy',
       viewId: 'view-network'
     }
   };
@@ -74,10 +74,13 @@
     RailSyncPlan.onChange(renderAll);
     RailSyncNetwork.onChange(renderAll);
 
-    // Initial Task Load
     RailSyncTasks.loadTasks();
+    RailSyncNetwork.loadNetwork();
+    RailSyncPlan.loadTrainMovements();
+    RailSyncPlan.refreshCurrentPlan();
+    refreshBackendHealth();
+    window.setInterval(refreshBackendHealth, 15000);
 
-    // Event Listeners Setup
     setupAssetsEventHandlers();
     setupPlanningEventHandlers();
     setupScheduleEventHandlers();
@@ -181,7 +184,7 @@
     const btnSelectAll = document.getElementById('btn-select-all-tasks');
     if (btnSelectAll) {
       btnSelectAll.addEventListener('click', function () {
-        const allIds = RailSyncTasks.getState().tasks.map(t => t.id);
+        const allIds = RailSyncTasks.getState().tasks.map(function (t) { return t.id; });
         RailSyncPlan.setSelectedTaskIds(allIds);
       });
     }
@@ -195,12 +198,49 @@
         btn.textContent = 'Approving...';
         const res = await RailSyncPlan.approveCurrentPlan();
         if (res.ok) {
-          alert(`Schedule ${res.scheduleId} successfully approved by Section Controller.`);
+          alert('Schedule ' + res.scheduleId + ' approved.');
         } else {
-          alert(`Approval status updated locally for ${RailSyncPlan.getState().currentPlan.scheduleId}.`);
+          alert(res.error || 'Approval failed.');
         }
       }
+
+      if (e.target.closest('#btn-disrupt-plan')) {
+        const btn = e.target.closest('#btn-disrupt-plan');
+        const taskSelect = document.getElementById('disrupt-task-id');
+        const reasonInput = document.getElementById('disrupt-reason');
+        const taskId = taskSelect ? taskSelect.value : '';
+        const reason = reasonInput && reasonInput.value.trim() ? reasonInput.value.trim() : 'Block overrun';
+        if (!taskId) {
+          alert('Select a scheduled task to disrupt.');
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = 'Re-optimizing...';
+        const res = await RailSyncPlan.disruptCurrentPlan(taskId, reason);
+        if (!res.ok) alert(res.error || 'Disruption failed.');
+      }
     });
+  }
+
+  async function refreshBackendHealth() {
+    const result = await RailSyncAPI.checkHealth();
+    const connected = !!(result && result.ok);
+    const dot = document.getElementById('ops-health-dot');
+    const label = document.getElementById('ops-health-label');
+    const sync = document.getElementById('ops-sync-label');
+    if (dot) {
+      dot.className = 'status-dot ' + (connected ? 'emerald' : 'red');
+    }
+    if (label) {
+      label.textContent = connected ? 'Backend connected' : 'Backend unreachable';
+    }
+    if (sync) {
+      sync.textContent = connected
+        ? ('GET /health ok — ' + RailSyncAPI.API_BASE)
+        : ('Cannot reach ' + RailSyncAPI.API_BASE);
+    }
+    const contextDot = document.querySelector('.context-dot');
+    if (contextDot) contextDot.style.background = connected ? '' : 'var(--color-danger-dot)';
   }
 
   // ----------------------------------------------------
@@ -226,9 +266,9 @@
     const { tasks, loading, error } = taskState;
     const { currentPlan } = planState;
 
-    const activeBlocksCount = currentPlan ? currentPlan.scheduledCount : tasks.filter(t => t.status === 'Approved' || t.status === 'Scheduled').length;
-    const pendingApprovalsCount = currentPlan && currentPlan.lifecycleState === 'active' ? 1 : tasks.filter(t => t.status === 'Pending Approval' || t.status === 'Unassigned').length;
-    const criticalCount = tasks.filter(t => t.severity === 'Critical').length;
+    const activeBlocksCount = currentPlan ? currentPlan.scheduledCount : 0;
+    const pendingApprovalsCount = currentPlan && currentPlan.lifecycleState === 'active' ? 1 : 0;
+    const criticalCount = tasks.filter(function (t) { return t.severity === 'Critical'; }).length;
 
     const activeBlocksEl = document.getElementById('metric-active-blocks');
     if (activeBlocksEl) activeBlocksEl.textContent = loading ? '--' : activeBlocksCount;
@@ -237,10 +277,10 @@
     if (pendingEl) pendingEl.textContent = loading ? '--' : pendingApprovalsCount;
 
     const availabilityEl = document.getElementById('metric-network-availability');
-    if (availabilityEl) availabilityEl.textContent = loading ? '-- %' : (criticalCount > 0 ? '94.2 %' : '98.5 %');
+    if (availabilityEl) availabilityEl.textContent = loading ? '--' : (tasks.length ? tasks.length + ' tasks' : '--');
 
     const punctualityEl = document.getElementById('metric-punctuality');
-    if (punctualityEl) punctualityEl.textContent = loading ? '-- %' : '96.4 %';
+    if (punctualityEl) punctualityEl.textContent = 'n/a';
 
     const alertBannerContainer = document.getElementById('overview-alert-container');
     if (alertBannerContainer) {
@@ -274,7 +314,7 @@
               <div class="alert-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
               <div>
                 <div class="alert-title">${criticalCount} Critical Track Safety Alert${criticalCount > 1 ? 's' : ''} Active</div>
-                <div class="alert-sub">Urgent maintenance intervention required on Agra Cantt — New Delhi Main Line</div>
+                <div class="alert-sub">Urgent maintenance on synthetic corridors C1–C4</div>
               </div>
             </div>
             <button class="btn btn-danger btn-sm" onclick="RailSyncApp.switchToAssetsWithFilter('critical')">Review Alerts</button>
@@ -285,8 +325,8 @@
             <div class="alert-content">
               <div class="alert-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
               <div>
-                <div class="alert-title">All Safety Signals Normal — Corridor Operating Efficiently</div>
-                <div class="alert-sub">Agra Cantt (AGC) – Mathura (MTJ) – New Delhi (NDLS) Main Trunk Line</div>
+                <div class="alert-title">All safety signals normal</div>
+                <div class="alert-sub">Synthetic network S1–S6 / corridors C1–C4</div>
               </div>
             </div>
             <span class="badge badge-success">System Operational</span>
@@ -310,7 +350,7 @@
                   <span class="badge ${t.severity === 'Critical' ? 'badge-danger' : 'badge-warning'}">${t.severity}</span>
                   <div>
                     <div class="summary-item-title">${escapeHtml(t.id)} — ${escapeHtml(t.corridor)}</div>
-                    <div class="summary-item-sub">${escapeHtml(t.description)} (${t.maintenanceAge}d age)</div>
+                    <div class="summary-item-sub">${escapeHtml(t.description)} (${t.maintenanceAge}d since last maintenance)</div>
                   </div>
                 </div>
                 <span class="badge badge-neutral">Priority ${t.priorityScore}</span>
@@ -322,7 +362,7 @@
 
     const activeBlocksContainer = document.getElementById('overview-active-blocks');
     if (activeBlocksContainer) {
-      const activeList = currentPlan ? currentPlan.blocks : tasks.filter(t => t.status === 'Approved' || t.status === 'Scheduled').slice(0, 3);
+      const activeList = currentPlan ? currentPlan.blocks : [];
       if (loading) {
         activeBlocksContainer.innerHTML = `<div class="skeleton-rect"></div>`;
       } else if (!activeList || activeList.length === 0) {
@@ -336,7 +376,7 @@
                   <span class="badge badge-info">${b.blockId || b.id}</span>
                   <div>
                     <div class="summary-item-title">${escapeHtml(b.taskId || b.id)} — ${escapeHtml(b.corridor)}</div>
-                    <div class="summary-item-sub">Window: ${b.startTimeFormatted || '02:00'} - ${b.endTimeFormatted || '04:30'} (${b.duration}h)</div>
+                    <div class="summary-item-sub">Window: ${escapeHtml(b.startTimeFormatted)} - ${escapeHtml(b.endTimeFormatted)} (${b.durationMin} min)</div>
                   </div>
                 </div>
                 <span class="status-indicator"><span class="status-dot blue"></span>Allocated</span>
@@ -384,7 +424,7 @@
           <td><span style="font-weight: 500; color: var(--color-text-primary);">${escapeHtml(t.corridor)}</span></td>
           <td style="max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(t.description)}</td>
           <td><span class="badge ${sevBadge}">${t.severity}</span></td>
-          <td style="font-family: var(--font-mono);">${t.duration} hrs</td>
+          <td style="font-family: var(--font-mono);">${t.durationMin} min</td>
           <td style="font-family: var(--font-mono);">${t.maintenanceAge} days</td>
           <td>
             <div class="priority-score-pill">
@@ -430,7 +470,7 @@
       <div class="drawer-grid">
         <div class="drawer-field"><span class="drawer-field-label">Corridor Section</span><span class="drawer-field-value">${escapeHtml(selectedTask.corridor)}</span></div>
         <div class="drawer-field"><span class="drawer-field-label">Department / Source</span><span class="drawer-field-value">${escapeHtml(selectedTask.department)}</span></div>
-        <div class="drawer-field"><span class="drawer-field-label">Estimated Duration</span><span class="drawer-field-value">${selectedTask.duration} Hours</span></div>
+        <div class="drawer-field"><span class="drawer-field-label">Estimated Duration</span><span class="drawer-field-value">${selectedTask.durationMin} min</span></div>
         <div class="drawer-field"><span class="drawer-field-label">Time Since Maintenance</span><span class="drawer-field-value">${selectedTask.maintenanceAge} Days</span></div>
       </div>
 
@@ -467,7 +507,7 @@
   // ----------------------------------------------------
   function renderPlanningWorkspace(taskState, planState) {
     const { tasks } = taskState;
-    const { generating, stageText, stagePercent, currentPlan, selectedTaskIds } = planState;
+    const { generating, stageText, stagePercent, currentPlan, selectedTaskIds, error } = planState;
 
     const btnGen = document.getElementById('btn-generate-plan');
     if (btnGen) {
@@ -509,7 +549,7 @@
                 <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); RailSyncPlan.toggleTaskSelection('${t.id}')">
                 <div>
                   <div class="summary-item-title">${escapeHtml(t.id)} — ${escapeHtml(t.department)} (${escapeHtml(t.corridor)})</div>
-                  <div class="summary-item-sub">${escapeHtml(t.description)} (${t.duration}h req)</div>
+                  <div class="summary-item-sub">${escapeHtml(t.description)} (${t.durationMin} min)</div>
                 </div>
               </div>
               <span class="badge ${t.severity === 'Critical' ? 'badge-danger' : 'badge-neutral'}">Priority ${t.priorityScore}</span>
@@ -520,7 +560,13 @@
 
     const planResultContainer = document.getElementById('planning-result-summary');
     if (planResultContainer) {
-      if (!currentPlan) {
+      if (error && !generating && !currentPlan) {
+        planResultContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-title">Plan generation failed</div>
+            <div class="empty-state-desc">${escapeHtml(error)}</div>
+          </div>`;
+      } else if (!currentPlan) {
         planResultContainer.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-title">No Block Plan Generated Yet</div>
@@ -554,7 +600,7 @@
               </div>
               <div style="padding: 10px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
                 <div style="font-size: 10px; font-weight: 700; color: var(--color-text-muted);">TOTAL DURATION</div>
-                <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700);">${currentPlan.totalBlockHours} h</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700);">${currentPlan.totalBlockMinutes} min</div>
               </div>
             </div>
 
@@ -594,9 +640,12 @@
   // 5. GANTT / BLOCK SCHEDULE RENDERER
   // ----------------------------------------------------
   function renderGanttSchedule(planState) {
-    const { currentPlan, trainTimetable } = planState;
+    const { currentPlan, previousPlan, trainTimetable, ganttStartHour, ganttEndHour, error, disrupting } = planState;
     const ganttViewportEl = document.getElementById('gantt-viewport-area');
     const approvalAreaEl = document.getElementById('schedule-approval-area');
+    const startH = ganttStartHour || 1;
+    const endH = ganttEndHour || 8;
+    const spanH = endH - startH;
 
     if (approvalAreaEl) {
       if (!currentPlan) {
@@ -604,26 +653,38 @@
           <div class="approval-card" style="border-color: var(--color-border-default); background: var(--color-bg-surface);">
             <div class="approval-info">
               <div class="approval-title">Controller Approval Area</div>
-              <div class="approval-sub">No block plan generated. Generate a plan from Block Planning workspace to enable controller approval.</div>
+              <div class="approval-sub">${error ? escapeHtml(error) : 'No block plan generated. Generate a plan from Block Planning to enable controller approval.'}</div>
             </div>
             <button class="btn btn-primary" onclick="RailSyncApp.navigateToRoute('planning')">Go to Block Planning</button>
           </div>`;
       } else {
         const isApproved = currentPlan.lifecycleState === 'approved';
+        const taskOptions = (currentPlan.blocks || []).map(function (b) {
+          return '<option value="' + escapeHtml(b.taskId) + '">' + escapeHtml(b.taskId) + ' (' + escapeHtml(b.corridor) + ')</option>';
+        }).join('');
+        const prevNote = previousPlan
+          ? '<div class="approval-sub" style="margin-top:8px;">Previous schedule <strong>' + escapeHtml(previousPlan.scheduleId) + '</strong> is <span class="badge badge-neutral">SUPERSEDED</span>. Current schedule is <span class="badge badge-info">' + escapeHtml(currentPlan.lifecycleState.toUpperCase()) + '</span>.</div>'
+          : '';
         approvalAreaEl.innerHTML = `
           <div class="approval-card ${isApproved ? 'approved' : ''}">
             <div class="approval-info">
               <div class="approval-title">
                 ${escapeHtml(currentPlan.scheduleId)}
-                <span class="badge ${isApproved ? 'badge-success' : 'badge-info'}">${isApproved ? 'APPROVED BY CONTROLLER' : 'PENDING APPROVAL'}</span>
-                <span class="badge ${currentPlan.solverStatus === 'feasible' ? 'badge-success' : 'badge-danger'}">SOLVER: ${currentPlan.solverStatus.toUpperCase()}</span>
+                <span class="badge ${isApproved ? 'badge-success' : 'badge-info'}">${isApproved ? 'APPROVED' : 'PENDING APPROVAL'}</span>
+                <span class="badge ${currentPlan.solverStatus === 'feasible' ? 'badge-success' : 'badge-danger'}">SOLVER: ${escapeHtml(String(currentPlan.solverStatus).toUpperCase())}</span>
+                <span class="badge badge-neutral">LIFE: ${escapeHtml(currentPlan.lifecycleState.toUpperCase())}</span>
               </div>
-              <div class="approval-sub">${currentPlan.scheduledCount} Maintenance Blocks (${currentPlan.totalBlockHours}h duration) — Synthetic Corridor Timetable Data</div>
+              <div class="approval-sub">${currentPlan.scheduledCount} maintenance blocks (${currentPlan.totalBlockMinutes} min) vs synthetic train occupancy on C1–C4</div>
+              ${prevNote}
+              ${error ? '<div class="approval-sub" style="color:var(--color-danger-text);">' + escapeHtml(error) + '</div>' : ''}
             </div>
-            <div>
+            <div style="display:flex; flex-direction:column; gap:8px; min-width:260px;">
               <button id="btn-approve-plan" class="btn ${isApproved ? 'btn-secondary disabled' : 'btn-primary btn-lg'}" ${isApproved ? 'disabled' : ''}>
                 ${isApproved ? 'Plan Approved' : 'Approve Block Plan'}
               </button>
+              <select id="disrupt-task-id" class="filter-select">${taskOptions}</select>
+              <input id="disrupt-reason" class="search-input" value="Block overrun" placeholder="Disruption reason">
+              <button id="btn-disrupt-plan" class="btn btn-danger" ${disrupting ? 'disabled' : ''}>${disrupting ? 'Re-optimizing...' : 'Trigger Disruption'}</button>
             </div>
           </div>`;
       }
@@ -631,37 +692,40 @@
 
     if (!ganttViewportEl) return;
 
-    const hoursArray = Array.from({ length: 25 }, (_, i) => i);
+    const hoursArray = [];
+    for (let h = startH; h <= endH; h += 1) hoursArray.push(h);
     const corridors = [
-      { id: 'AGC-MTJ', name: 'AGC — MTJ Line', sub: 'Agra Cantt to Mathura Junction' },
-      { id: 'MTJ-KSV', name: 'MTJ — KSV Line', sub: 'Mathura to Kosi Kalan' },
-      { id: 'KSV-NDLS', name: 'KSV — NDLS Line', sub: 'Kosi Kalan to New Delhi' }
+      { id: 'C1', name: 'C1', sub: 'S1 → S2 → S3' },
+      { id: 'C2', name: 'C2', sub: 'S2 → S4' },
+      { id: 'C3', name: 'C3', sub: 'S2 → S5' },
+      { id: 'C4', name: 'C4', sub: 'S4 → S6' }
     ];
 
     const blocks = currentPlan ? currentPlan.blocks : [];
+    const trains = trainTimetable || [];
 
     ganttViewportEl.innerHTML = `
       <div class="gantt-container">
         <div class="gantt-header-bar">
           <div style="font-size: 13px; font-weight: 700; color: var(--color-text-primary);">
-            Agra Cantt — New Delhi Corridor Timeline Viewport
+            Synthetic timetable viewport (2026-09-09 ${String(startH).padStart(2, '0')}:00–${String(endH).padStart(2, '0')}:00 UTC)
           </div>
           <div class="gantt-legend">
-            <div class="gantt-legend-item"><span class="legend-box train"></span> Train Occupancy (Constraint)</div>
-            <div class="gantt-legend-item"><span class="legend-box block"></span> Maintenance Block Window</div>
-            <div class="gantt-legend-item"><span class="legend-box window"></span> Train-Free Gap</div>
+            <div class="gantt-legend-item"><span class="legend-box train"></span> Train occupancy</div>
+            <div class="gantt-legend-item"><span class="legend-box block"></span> Maintenance block</div>
+            <div class="gantt-legend-item"><span class="legend-box window"></span> Train-free gap</div>
           </div>
         </div>
 
         <div class="gantt-scroll-viewport">
           <div class="gantt-timeline-wrapper">
             <div class="gantt-time-axis">
-              ${hoursArray.map(h => `<div class="gantt-time-tick">${String(h).padStart(2, '0')}:00</div>`).join('')}
+              ${hoursArray.map(function (h) { return '<div class="gantt-time-tick">' + String(h).padStart(2, '0') + ':00</div>'; }).join('')}
             </div>
 
-            ${corridors.map(c => {
-              const corridorTrains = trainTimetable.filter(t => t.corridor === c.id);
-              const corridorBlocks = blocks.filter(b => b.corridor === c.id);
+            ${corridors.map(function (c) {
+              const corridorTrains = trains.filter(function (t) { return t.corridor === c.id; });
+              const corridorBlocks = blocks.filter(function (b) { return b.corridor === c.id; });
 
               return `
                 <div class="gantt-corridor-row">
@@ -671,22 +735,22 @@
                   </div>
 
                   <div class="gantt-track-area">
-                    ${corridorTrains.map(t => {
-                      const leftPct = (t.startHour / 24) * 100;
-                      const widthPct = ((t.endHour - t.startHour) / 24) * 100;
+                    ${corridorTrains.map(function (t) {
+                      const leftPct = ((t.startHour - startH) / spanH) * 100;
+                      const widthPct = ((t.endHour - t.startHour) / spanH) * 100;
                       return `
-                        <div class="gantt-train-bar" style="left: ${leftPct}%; width: ${widthPct}%;" title="Train Constraint: ${t.name} (${t.startHour}:00 - ${t.endHour}:00)">
-                          🚆 ${t.name}
+                        <div class="gantt-train-bar" style="left: ${leftPct}%; width: ${widthPct}%;" title="Train ${t.name} ${t.start}–${t.end}">
+                          ${escapeHtml(t.name)}
                         </div>`;
                     }).join('')}
 
-                    ${corridorBlocks.map(b => {
-                      const leftPct = (b.startHour / 24) * 100;
-                      const widthPct = ((b.endHour - b.startHour) / 24) * 100;
+                    ${corridorBlocks.map(function (b) {
+                      const leftPct = ((b.startHour - startH) / spanH) * 100;
+                      const widthPct = ((b.endHour - b.startHour) / spanH) * 100;
                       const isApproved = currentPlan.lifecycleState === 'approved';
                       return `
-                        <div class="gantt-block-bar ${isApproved ? 'approved' : ''}" style="left: ${leftPct}%; width: ${widthPct}%;" onclick="RailSyncApp.openTaskDetail('${b.taskId}')" title="Block ${b.blockId}: Task ${b.taskId} (${b.startTimeFormatted} - ${b.endTimeFormatted})">
-                          <span>🛠️ ${b.taskId} (${b.duration}h)</span>
+                        <div class="gantt-block-bar ${isApproved ? 'approved' : ''}" style="left: ${leftPct}%; width: ${widthPct}%;" onclick="RailSyncApp.openTaskDetail('${b.taskId}')" title="${b.taskId} ${b.corridor} ${b.blockStart}–${b.blockEnd} (${b.durationMin} min, ${currentPlan.lifecycleState})">
+                          <span>${b.taskId} (${b.durationMin}m)</span>
                           <span style="font-size: 10px; opacity: 0.9;">${b.startTimeFormatted}</span>
                         </div>`;
                     }).join('')}
@@ -697,8 +761,8 @@
         </div>
 
         <div style="padding: 10px 16px; background: var(--color-bg-subtle); border-top: 1px solid var(--color-border-default); font-size: 11px; color: var(--color-text-muted); display: flex; justify-content: space-between;">
-          <span>* Train occupancy data represents synthetic operational timetable constraints.</span>
-          <span>Corridor Capacity = 1 (Sequential Block Allocation Enforced)</span>
+          <span>Train occupancy from data/train_movements.json. Maintenance blocks from POST /plan/generate.</span>
+          <span>Corridor capacity = 1</span>
         </div>
       </div>`;
   }
@@ -707,45 +771,48 @@
   // 6. NETWORK CORRIDOR SCHEMATIC RENDERER
   // ----------------------------------------------------
   function renderNetworkSchematic(networkState, planState) {
-    const { stations, corridors, trains, selectedTrain, selectedCorridor, selectedStation } = networkState;
+    const { stations, corridors, trains, selectedTrain, selectedCorridor, selectedStation, loading, error } = networkState;
     const { currentPlan } = planState;
 
     const canvasEl = document.getElementById('network-schematic-canvas');
     const inspectorEl = document.getElementById('network-inspector-panel');
 
     if (canvasEl) {
+      if (loading) {
+        canvasEl.innerHTML = '<div class="empty-state"><div class="empty-state-title">Loading synthetic network...</div></div>';
+      } else if (error) {
+        canvasEl.innerHTML = '<div class="empty-state"><div class="empty-state-title">Network data unavailable</div><div class="empty-state-desc">' + escapeHtml(error) + '</div></div>';
+      } else {
       canvasEl.innerHTML = `
         <div class="schematic-track-line">
           <div class="track-line-bg"></div>
 
           <!-- Render 6 Stations -->
           ${stations.map((s, idx) => {
-            const leftPct = (idx / (stations.length - 1)) * 90 + 5;
+            const leftPct = stations.length > 1 ? (idx / (stations.length - 1)) * 90 + 5 : 50;
             const isSelected = selectedStation && selectedStation.code === s.code;
             return `
-              <div class="schematic-station-node" style="left: ${leftPct}%;" onclick="RailSyncNetwork.selectStation('${s.code}')" title="${s.name} (${s.code}) — Km ${s.km}">
-                <div class="station-dot ${s.platformCount > 6 ? 'junction' : ''}"></div>
+              <div class="schematic-station-node" style="left: ${leftPct}%;" onclick="RailSyncNetwork.selectStation('${s.code}')" title="${s.name} (${s.code})">
+                <div class="station-dot ${idx === 0 || idx === stations.length - 1 ? 'junction' : ''}"></div>
                 <div class="station-node-label" style="${isSelected ? 'border-color: var(--color-primary-500); background: var(--color-primary-50);' : ''}">
                   ${s.code}
                 </div>
-                <div class="station-node-sub">Km ${s.km}</div>
+                <div class="station-node-sub">${escapeHtml(s.name)}</div>
               </div>`;
           }).join('')}
 
           <!-- Render 7 Synthetic Train Position Markers -->
           ${trains.map((t, idx) => {
-            // Position mapping based on section index
-            const secIdx = corridors.findIndex(c => c.id === t.section);
-            const basePct = (secIdx / (corridors.length)) * 75 + 12;
+            const secIdx = Math.max(0, corridors.findIndex(c => c.id === t.section));
+            const basePct = corridors.length ? (secIdx / corridors.length) * 75 + 12 : 20;
             const offsetPct = (t.positionPct / 100) * 15;
             const leftPct = Math.min(92, Math.max(8, basePct + offsetPct));
 
             const isSelected = selectedTrain && selectedTrain.id === t.id;
-            const isFreight = t.type.includes('Freight');
 
             return `
-              <div class="schematic-train-marker ${isFreight ? 'freight' : ''}" style="left: ${leftPct}%; ${isSelected ? 'border-color: #38bdf8; background: var(--color-primary-800);' : ''}" onclick="RailSyncNetwork.selectTrain('${t.id}')" title="Train ${t.number}: ${t.name}">
-                <span>${t.direction.includes('UP') ? '▲' : '▼'}</span>
+              <div class="schematic-train-marker" style="left: ${leftPct}%; ${isSelected ? 'border-color: #38bdf8; background: var(--color-primary-800);' : ''}" onclick="RailSyncNetwork.selectTrain('${t.id}')" title="Train ${t.number}: ${t.timetable}">
+                <span>${idx + 1}</span>
                 <span>${t.number}</span>
               </div>`;
           }).join('')}
@@ -761,28 +828,27 @@
 
         </div>
       `;
+      }
     }
 
     if (inspectorEl) {
       if (selectedTrain) {
         inspectorEl.innerHTML = `
-          <div class="drawer-section-title">Train Telemetry Inspector</div>
+          <div class="drawer-section-title">Train Inspector</div>
           <div style="font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px;">
-            🚆 ${escapeHtml(selectedTrain.number)} — ${escapeHtml(selectedTrain.name)}
+            ${escapeHtml(selectedTrain.number)}
           </div>
-          <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 14px;">${escapeHtml(selectedTrain.type)}</div>
+          <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 14px;">Synthetic timetable service</div>
 
           <div class="drawer-grid">
-            <div class="drawer-field"><span class="drawer-field-label">Current Section</span><span class="drawer-field-value">${escapeHtml(selectedTrain.section)}</span></div>
-            <div class="drawer-field"><span class="drawer-field-label">Direction</span><span class="drawer-field-value">${escapeHtml(selectedTrain.direction)}</span></div>
-            <div class="drawer-field"><span class="drawer-field-label">Current Speed</span><span class="drawer-field-value">${escapeHtml(selectedTrain.speed)}</span></div>
-            <div class="drawer-field"><span class="drawer-field-label">Punctuality</span><span class="drawer-field-value" style="color: var(--color-success-text);">${escapeHtml(selectedTrain.status)}</span></div>
+            <div class="drawer-field"><span class="drawer-field-label">Corridor</span><span class="drawer-field-value">${escapeHtml(selectedTrain.section)}</span></div>
+            <div class="drawer-field"><span class="drawer-field-label">Route</span><span class="drawer-field-value">${escapeHtml(selectedTrain.direction)}</span></div>
           </div>
 
-          <div class="drawer-section-title">Operational Timetable</div>
+          <div class="drawer-section-title">Route</div>
           <div style="font-size: 12px; color: var(--color-text-secondary); background: var(--color-bg-app); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); margin-bottom: 14px;">
-            <strong>Timetable Schedule:</strong> ${escapeHtml(selectedTrain.timetable)}<br>
-            <span style="font-size: 11px; color: var(--color-text-muted);">* Synthetic Operational Timetable Data</span>
+            ${escapeHtml(selectedTrain.timetable)}<br>
+            <span style="font-size: 11px; color: var(--color-text-muted);">Synthetic operating timetable — not live IR telemetry</span>
           </div>`;
       } else if (selectedStation) {
         inspectorEl.innerHTML = `
@@ -790,17 +856,17 @@
           <div style="font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px;">
             🚉 ${escapeHtml(selectedStation.name)} (${escapeHtml(selectedStation.code)})
           </div>
-          <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 14px;">${escapeHtml(selectedStation.division)} Division — Km ${selectedStation.km}</div>
+          <div style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 14px;">Synthetic station node</div>
 
           <div class="drawer-grid">
-            <div class="drawer-field"><span class="drawer-field-label">Platform Count</span><span class="drawer-field-value">${selectedStation.platformCount} Platforms</span></div>
-            <div class="drawer-field"><span class="drawer-field-label">Signal Status</span><span class="drawer-field-value" style="color: var(--color-success-text);">${escapeHtml(selectedStation.status)}</span></div>
+            <div class="drawer-field"><span class="drawer-field-label">Station ID</span><span class="drawer-field-value">${escapeHtml(selectedStation.code)}</span></div>
+            <div class="drawer-field"><span class="drawer-field-label">Name</span><span class="drawer-field-value">${escapeHtml(selectedStation.name)}</span></div>
           </div>`;
       } else {
         inspectorEl.innerHTML = `
           <div class="empty-state" style="border: none;">
             <div class="empty-state-title">Corridor Element Inspector</div>
-            <div class="empty-state-desc">Click on any station node, train marker, or track block in the schematic diagram to inspect live operational parameters.</div>
+            <div class="empty-state-desc">Click a station or train. Data is the synthetic S1–S6 network from the project data files.</div>
           </div>`;
       }
     }

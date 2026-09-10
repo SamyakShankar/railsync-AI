@@ -28,6 +28,11 @@ class BackendApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
+    def test_synthetic_network_files_are_served_for_the_frontend(self):
+        response = self.client.get("/data/stations.json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 6)
+
     def test_tasks_match_contract_schema(self):
         response = self.client.get("/tasks")
         self.assertEqual(response.status_code, 200)

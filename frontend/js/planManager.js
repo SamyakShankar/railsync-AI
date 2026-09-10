@@ -1,255 +1,291 @@
-/* RailSync AI - Automatic Block Planning & Gantt Schedule Engine */
+/* RailSync AI - Block Planning against the real FastAPI optimizer */
 
 window.RailSyncPlan = (function () {
   'use strict';
 
-  // Synthetic Train Occupancy Timetable (Corridor Constraints)
-  const TRAIN_TIMETABLE = [
-    { id: 'TRN-12004', name: '12004 Shatabdi Exp', corridor: 'AGC-MTJ', startHour: 6.0, endHour: 7.5, type: 'passenger' },
-    { id: 'TRN-12626', name: '12626 Kerala Exp', corridor: 'MTJ-KSV', startHour: 8.5, endHour: 10.25, type: 'passenger' },
-    { id: 'TRN-22415', name: '22415 Vande Bharat', corridor: 'KSV-NDLS', startHour: 11.5, endHour: 12.75, type: 'passenger' },
-    { id: 'FRT-55102', name: 'BJU Freight Container', corridor: 'AGC-MTJ', startHour: 14.0, endHour: 16.0, type: 'freight' },
-    { id: 'TRN-12952', name: '12952 Rajdhani Exp', corridor: 'KSV-NDLS', startHour: 17.0, endHour: 18.5, type: 'passenger' },
-    { id: 'FRT-88201', name: 'Coal Rake Down', corridor: 'MTJ-KSV', startHour: 20.5, endHour: 22.5, type: 'freight' }
-  ];
+  const GANTT_START_HOUR = 1;
+  const GANTT_END_HOUR = 8;
 
-  // Train-Free Maintenance Opportunities (Windows)
-  const MAINTENANCE_WINDOWS = [
-    { windowId: 'WIN-01', startHour: 1.0, endHour: 5.5, label: 'Night Window (01:00 - 05:30)' },
-    { windowId: 'WIN-02', startHour: 12.75, endHour: 14.0, label: 'Midday Window (12:45 - 14:00)' },
-    { windowId: 'WIN-03', startHour: 18.5, endHour: 20.5, label: 'Evening Window (18:30 - 20:30)' }
-  ];
-
-  // Plan State
   const state = {
     generating: false,
+    disrupting: false,
     stageText: '',
     stagePercent: 0,
     currentPlan: null,
+    previousPlan: null,
     selectedTaskIds: [],
-    history: []
+    trainMovements: [],
+    error: null
   };
 
-  /**
-   * Initialize default selected task IDs
-   */
-  function setSelectedTaskIds(taskIds) {
-    state.selectedTaskIds = taskIds;
-    notifyStateChange();
-  }
-
-  /**
-   * Toggle individual task selection for planning
-   */
-  function toggleTaskSelection(taskId) {
-    const idx = state.selectedTaskIds.indexOf(taskId);
-    if (idx >= 0) {
-      state.selectedTaskIds.splice(idx, 1);
-    } else {
-      state.selectedTaskIds.push(taskId);
-    }
-    notifyStateChange();
-  }
-
-  /**
-   * Execute Automatic Block Plan Generation
-   */
-  async function generateBlockPlan() {
-    state.generating = true;
-    state.stagePercent = 10;
-    state.stageText = 'Analyzing corridor train movements and synthetic timetable...';
-    notifyStateChange();
-
-    // Stage 1: Timetable analysis simulation
-    await delay(300);
-    state.stagePercent = 35;
-    state.stageText = 'Evaluating track capacity (Corridor Capacity = 1) and headway rules...';
-    notifyStateChange();
-
-    // Stage 2: Constraint checking
-    await delay(350);
-    state.stagePercent = 65;
-    state.stageText = 'Identifying train-free maintenance windows across AGC-NDLS sections...';
-    notifyStateChange();
-
-    // Stage 3: Attempt API call or synthesize plan
-    await delay(350);
-    state.stagePercent = 85;
-    state.stageText = 'Synthesizing sequential block schedule proposal...';
-    notifyStateChange();
-
-    const selectedTasks = RailSyncTasks.getState().tasks.filter(t => 
-      state.selectedTaskIds.length === 0 || state.selectedTaskIds.includes(t.id)
-    );
-
-    const apiResult = await RailSyncAPI.generatePlan({
-      task_ids: selectedTasks.map(t => t.id)
-    });
-
-    await delay(200);
-    state.stagePercent = 100;
-    state.stageText = 'Block schedule synthesized successfully!';
-
-    let planObj;
-    if (apiResult.ok && apiResult.data && apiResult.data.schedule_id) {
-      planObj = apiResult.data;
-    } else {
-      // Local Solver Synthesis based on strict rules
-      planObj = synthesizePlan(selectedTasks);
-    }
-
-    // Mark previous plan as superseded
-    if (state.currentPlan && state.currentPlan.lifecycleState === 'active') {
-      state.currentPlan.lifecycleState = 'superseded';
-    }
-
-    state.currentPlan = planObj;
-    state.generating = false;
-    notifyStateChange();
-
-    return planObj;
-  }
-
-  /**
-   * Approve Plan via POST /plan/approve or local state
-   */
-  async function approveCurrentPlan() {
-    if (!state.currentPlan) return { ok: false, error: 'No active plan' };
-
-    const scheduleId = state.currentPlan.scheduleId;
-    const apiResult = await RailSyncAPI.approvePlan({ schedule_id: scheduleId });
-
-    if (apiResult.ok || apiResult.status === 404) {
-      state.currentPlan.lifecycleState = 'approved';
-      notifyStateChange();
-      return { ok: true, scheduleId: scheduleId };
-    } else {
-      return { ok: false, error: apiResult.error };
-    }
-  }
-
-  /**
-   * Local Solver Engine (Strictly adherence to Corridor Capacity = 1)
-   */
-  function synthesizePlan(inputTasks) {
-    const scheduleId = `SCH-${new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 12)}`;
-    
-    // Sort tasks by priority score descending
-    const sortedTasks = [...inputTasks].sort((a, b) => b.priorityScore - a.priorityScore);
-
-    const scheduledBlocks = [];
-    const unscheduledTasks = [];
-
-    // Track window cursor per corridor section to enforce Capacity = 1 (Sequential Allocation)
-    const corridorCursors = {
-      'AGC-MTJ': { winIdx: 0, time: 1.5 },
-      'MTJ-KSV': { winIdx: 0, time: 1.5 },
-      'KSV-NDLS': { winIdx: 0, time: 1.5 }
-    };
-
-    let totalAllocatedHours = 0;
-
-    sortedTasks.forEach((task, index) => {
-      const corr = corridorCursors[task.corridor] ? task.corridor : 'AGC-MTJ';
-      let cursor = corridorCursors[corr];
-
-      let placed = false;
-
-      // Try windows
-      for (let wIdx = cursor.winIdx; wIdx < MAINTENANCE_WINDOWS.length; wIdx++) {
-        const win = MAINTENANCE_WINDOWS[wIdx];
-        let startTime = Math.max(cursor.time, win.startHour);
-        let endTime = startTime + task.duration;
-
-        if (endTime <= win.endHour) {
-          // Placed successfully in window!
-          const blockId = `BLK-${scheduleId.slice(-4)}-${index + 1}`;
-          
-          scheduledBlocks.push({
-            blockId: blockId,
-            taskId: task.id,
-            department: task.department,
-            corridor: task.corridor,
-            description: task.description,
-            severity: task.severity,
-            priorityScore: task.priorityScore,
-            duration: task.duration,
-            startHour: startTime,
-            endHour: endTime,
-            startTimeFormatted: formatHour(startTime),
-            endTimeFormatted: formatHour(endTime),
-            windowId: win.windowId,
-            windowLabel: win.label,
-            coordinationNote: `Coordinated within ${win.label} (Sequential track corridor access)`
-          });
-
-          cursor.winIdx = wIdx;
-          cursor.time = endTime + 0.25; // 15 min buffer
-          totalAllocatedHours += task.duration;
-          placed = true;
-          break;
-        }
-      }
-
-      if (!placed) {
-        unscheduledTasks.push({
-          task: task,
-          reason: `Exceeds available train-free window capacity (${task.duration}h duration required)`
-        });
-      }
-    });
-
-    const isFeasible = unscheduledTasks.length === 0 || scheduledBlocks.length > 0;
-
-    return {
-      scheduleId: scheduleId,
-      createdAt: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
-      solverStatus: isFeasible ? 'feasible' : 'infeasible',
-      lifecycleState: 'active', // active, approved, superseded
-      scheduledCount: scheduledBlocks.length,
-      unscheduledCount: unscheduledTasks.length,
-      totalBlockHours: totalAllocatedHours.toFixed(1),
-      blocks: scheduledBlocks,
-      unscheduledTasks: unscheduledTasks,
-      summary: `Synthesized ${scheduledBlocks.length} maintenance blocks (${totalAllocatedHours.toFixed(1)} hrs total) on AGC-NDLS corridor across ${MAINTENANCE_WINDOWS.length} train-free windows.`
-    };
+  function isoToUtcHour(iso) {
+    const parsed = new Date(iso);
+    if (isNaN(parsed.getTime())) return 0;
+    return parsed.getUTCHours() + parsed.getUTCMinutes() / 60 + parsed.getUTCSeconds() / 3600;
   }
 
   function formatHour(h) {
     const hours = Math.floor(h);
     const mins = Math.round((h - hours) * 60);
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    return String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
   }
 
   function delay(ms) {
-    return new Promise(res => setTimeout(res, ms));
+    return new Promise(function (res) { setTimeout(res, ms); });
   }
 
-  // Listeners
+  function lookupTask(taskId) {
+    const tasks = RailSyncTasks.getState().tasks || [];
+    return tasks.find(function (t) { return t.id === taskId; }) || null;
+  }
+
+  function mapBackendPlan(raw, extras) {
+    extras = extras || {};
+    const blocks = (raw.schedule || []).map(function (block, index) {
+      const startHour = isoToUtcHour(block.block_start);
+      const endHour = isoToUtcHour(block.block_end);
+      const durationMin = Math.max(0, Math.round((endHour - startHour) * 60));
+      const task = lookupTask(block.task_id);
+      return {
+        blockId: (raw.schedule_id || 'BLK') + '-' + (index + 1),
+        taskId: block.task_id,
+        corridor: block.corridor_id,
+        department: task ? task.department : '',
+        description: task ? task.description : '',
+        severity: task ? task.severity : '',
+        priorityScore: task ? task.priorityScore : 0,
+        durationMin: durationMin,
+        duration: Math.round((durationMin / 60) * 10) / 10,
+        startHour: startHour,
+        endHour: endHour,
+        startTimeFormatted: formatHour(startHour),
+        endTimeFormatted: formatHour(endHour),
+        blockStart: block.block_start,
+        blockEnd: block.block_end,
+        status: extras.lifecycleStatus || raw.lifecycle_status || 'active'
+      };
+    });
+
+    const unscheduledIds = raw.unscheduled_task_ids || [];
+    const unscheduledTasks = unscheduledIds.map(function (taskId) {
+      const task = lookupTask(taskId);
+      return {
+        task: task || { id: taskId, corridor: '', description: 'Unknown task' },
+        reason: 'Not placed in a train-free window (duration or corridor capacity).'
+      };
+    });
+
+    const totalMin = blocks.reduce(function (sum, b) { return sum + b.durationMin; }, 0);
+
+    return {
+      scheduleId: raw.schedule_id,
+      createdAt: extras.createdAt || new Date().toISOString(),
+      solverStatus: raw.status || 'feasible',
+      lifecycleState: raw.lifecycle_status || extras.lifecycleStatus || 'active',
+      scheduledCount: blocks.length,
+      unscheduledCount: unscheduledIds.length,
+      totalBlockHours: (Math.round((totalMin / 60) * 10) / 10).toFixed(1),
+      totalBlockMinutes: totalMin,
+      blocks: blocks,
+      unscheduledTasks: unscheduledTasks,
+      unscheduledTaskIds: unscheduledIds,
+      summary: extras.summary || (
+        'Scheduled ' + blocks.length + ' maintenance blocks (' + totalMin + ' min) with ' +
+        unscheduledIds.length + ' unscheduled. Solver ' + (raw.status || 'feasible') +
+        ', lifecycle ' + (raw.lifecycle_status || 'active') + '.'
+      ),
+      raw: raw
+    };
+  }
+
+  function setSelectedTaskIds(taskIds) {
+    state.selectedTaskIds = taskIds;
+    notifyStateChange();
+  }
+
+  function toggleTaskSelection(taskId) {
+    const idx = state.selectedTaskIds.indexOf(taskId);
+    if (idx >= 0) state.selectedTaskIds.splice(idx, 1);
+    else state.selectedTaskIds.push(taskId);
+    notifyStateChange();
+  }
+
+  async function loadTrainMovements() {
+    const result = await RailSyncAPI.fetchNetwork();
+    if (result.ok) {
+      state.trainMovements = (result.data.movements || []).map(function (m) {
+        const startHour = isoToUtcHour(m.start);
+        const endHour = isoToUtcHour(m.end);
+        return {
+          id: m.movement_id,
+          name: m.train_id,
+          corridor: m.corridor_id,
+          startHour: startHour,
+          endHour: endHour,
+          start: m.start,
+          end: m.end,
+          type: 'train'
+        };
+      });
+      notifyStateChange();
+    }
+    return result;
+  }
+
+  async function refreshCurrentPlan() {
+    const result = await RailSyncAPI.getCurrentPlan();
+    if (result.ok) {
+      state.currentPlan = mapBackendPlan(result.data);
+      state.error = null;
+      notifyStateChange();
+      return result;
+    }
+    if (result.status === 404) {
+      state.currentPlan = null;
+      notifyStateChange();
+      return result;
+    }
+    state.error = result.error;
+    notifyStateChange();
+    return result;
+  }
+
+  async function generateBlockPlan() {
+    state.generating = true;
+    state.error = null;
+    state.stagePercent = 15;
+    state.stageText = 'Waiting for FastAPI /plan/generate (CP-SAT)...';
+    notifyStateChange();
+    await delay(150);
+
+    const apiResult = await RailSyncAPI.generatePlan();
+    state.stagePercent = 80;
+    state.stageText = 'Receiving optimizer result...';
+    notifyStateChange();
+    await delay(100);
+
+    state.generating = false;
+    if (!apiResult.ok) {
+      state.stagePercent = 0;
+      state.stageText = '';
+      state.error = apiResult.error;
+      notifyStateChange();
+      return { ok: false, error: apiResult.error };
+    }
+
+    if (state.currentPlan) {
+      state.previousPlan = Object.assign({}, state.currentPlan, { lifecycleState: 'superseded' });
+    }
+    state.currentPlan = mapBackendPlan(apiResult.data);
+    state.stagePercent = 100;
+    state.stageText = 'Block schedule received from CP-SAT.';
+    const current = await RailSyncAPI.getCurrentPlan();
+    if (current.ok) state.currentPlan = mapBackendPlan(current.data);
+    await RailSyncTasks.loadTasks();
+    notifyStateChange();
+    return { ok: true, plan: state.currentPlan };
+  }
+
+  async function approveCurrentPlan() {
+    if (!state.currentPlan) return { ok: false, error: 'No active plan' };
+    const scheduleId = state.currentPlan.scheduleId;
+    const apiResult = await RailSyncAPI.approvePlan({ schedule_id: scheduleId });
+    if (!apiResult.ok) {
+      state.error = apiResult.error;
+      notifyStateChange();
+      return { ok: false, error: apiResult.error };
+    }
+    const current = await RailSyncAPI.getCurrentPlan();
+    if (current.ok) {
+      state.currentPlan = mapBackendPlan(current.data);
+    } else {
+      state.currentPlan.lifecycleState = apiResult.data.lifecycle_status || 'approved';
+    }
+    state.error = null;
+    await RailSyncTasks.loadTasks();
+    notifyStateChange();
+    return { ok: true, scheduleId: scheduleId, data: apiResult.data };
+  }
+
+  async function disruptCurrentPlan(taskId, reason) {
+    if (!taskId) return { ok: false, error: 'Select a scheduled task to disrupt' };
+    state.disrupting = true;
+    state.error = null;
+    notifyStateChange();
+
+    const previousId = state.currentPlan ? state.currentPlan.scheduleId : null;
+    const apiResult = await RailSyncAPI.disruptTrack({
+      task_id: taskId,
+      reason: reason || 'Block overrun'
+    });
+
+    if (!apiResult.ok) {
+      state.disrupting = false;
+      state.error = apiResult.error;
+      notifyStateChange();
+      return { ok: false, error: apiResult.error };
+    }
+
+    if (state.currentPlan) {
+      state.previousPlan = Object.assign({}, state.currentPlan, {
+        lifecycleState: 'superseded',
+        scheduleId: previousId
+      });
+    }
+
+    const current = await RailSyncAPI.getCurrentPlan();
+    if (current.ok) {
+      state.currentPlan = mapBackendPlan(current.data);
+    } else {
+      state.currentPlan = {
+        scheduleId: apiResult.data.schedule_id,
+        lifecycleState: apiResult.data.lifecycle_status || 'active',
+        solverStatus: 'feasible',
+        scheduledCount: 0,
+        unscheduledCount: 0,
+        totalBlockHours: '0.0',
+        totalBlockMinutes: 0,
+        blocks: [],
+        unscheduledTasks: [],
+        summary: apiResult.data.message || 'Plan re-optimized after disruption'
+      };
+    }
+
+    state.disrupting = false;
+    state.error = null;
+    await RailSyncTasks.loadTasks();
+    notifyStateChange();
+    return { ok: true, data: apiResult.data, previousScheduleId: previousId };
+  }
+
   const listeners = [];
-  function onChange(fn) {
-    listeners.push(fn);
-  }
-
+  function onChange(fn) { listeners.push(fn); }
   function notifyStateChange() {
-    listeners.forEach(fn => fn(getState()));
+    listeners.forEach(function (fn) { fn(getState()); });
   }
 
   function getState() {
     return {
       generating: state.generating,
+      disrupting: state.disrupting,
       stageText: state.stageText,
       stagePercent: state.stagePercent,
       currentPlan: state.currentPlan,
+      previousPlan: state.previousPlan,
       selectedTaskIds: state.selectedTaskIds,
-      trainTimetable: TRAIN_TIMETABLE,
-      maintenanceWindows: MAINTENANCE_WINDOWS
+      trainTimetable: state.trainMovements,
+      ganttStartHour: GANTT_START_HOUR,
+      ganttEndHour: GANTT_END_HOUR,
+      error: state.error
     };
   }
 
   return {
     generateBlockPlan: generateBlockPlan,
     approveCurrentPlan: approveCurrentPlan,
+    disruptCurrentPlan: disruptCurrentPlan,
+    refreshCurrentPlan: refreshCurrentPlan,
+    loadTrainMovements: loadTrainMovements,
     setSelectedTaskIds: setSelectedTaskIds,
     toggleTaskSelection: toggleTaskSelection,
     onChange: onChange,

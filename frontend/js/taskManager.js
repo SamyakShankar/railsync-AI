@@ -3,7 +3,9 @@
 window.RailSyncTasks = (function () {
   'use strict';
 
-  // Internal Task State
+  const PLANNING_DATE = '2026-09-09';
+  const SEVERITY_LABELS = { 1: 'Low', 2: 'Low', 3: 'Medium', 4: 'High', 5: 'Critical' };
+
   const state = {
     tasks: [],
     loading: false,
@@ -23,9 +25,6 @@ window.RailSyncTasks = (function () {
     }
   };
 
-  /**
-   * Load tasks from RailSyncAPI
-   */
   async function loadTasks() {
     state.loading = true;
     state.error = null;
@@ -46,166 +45,113 @@ window.RailSyncTasks = (function () {
     return result;
   }
 
-  /**
-   * Normalize task object structure
-   */
-  function normalizeTask(raw, index) {
-    const id = raw.id || raw.task_id || `TSK-${1001 + index}`;
-    const department = raw.department || raw.source || raw.dept || 'P-Way';
-    const corridor = raw.corridor || raw.section || raw.location || 'AGC-MTJ';
-    const description = raw.description || raw.title || raw.work_type || 'Track geometry inspection and ballast tamping';
-    const severity = (raw.severity || 'Medium').toLowerCase();
-    
-    // Normalize Severity capitalization
-    const severityFormatted = severity.charAt(0).toUpperCase() + severity.slice(1);
-    
-    const duration = parseFloat(raw.duration || raw.estimated_duration || 2.5);
-    const maintenanceAge = parseInt(raw.maintenance_age || raw.time_since_maintenance || 90, 10);
-    
-    // Calculate or normalize Priority Score (1 - 100)
-    let priorityScore = raw.priority_score || raw.priority;
-    if (priorityScore === undefined || priorityScore === null) {
-      priorityScore = calculatePriorityScore(severityFormatted, maintenanceAge, corridor);
-    } else {
-      priorityScore = Math.min(100, Math.max(1, parseInt(priorityScore, 10)));
-    }
+  function daysBetween(isoDate, planningDate) {
+    const start = new Date(isoDate + 'T00:00:00Z');
+    const end = new Date(planningDate + 'T00:00:00Z');
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+    return Math.max(0, Math.round((end - start) / 86400000));
+  }
 
-    const status = raw.status || 'Unassigned';
+  function normalizeTask(raw, index) {
+    const id = raw.task_id || raw.id || ('TASK-' + String(index + 1).padStart(3, '0'));
+    const corridor = raw.corridor_id || raw.corridor || '';
+    const severityNum = parseInt(raw.severity, 10);
+    const severityLabel = SEVERITY_LABELS[severityNum] || String(raw.severity || '');
+    const durationMin = parseInt(raw.estimated_duration_min, 10);
+    const lastDate = raw.last_maintenance_date || '';
+    const maintenanceAge = lastDate ? daysBetween(lastDate, PLANNING_DATE) : 0;
+    const priorityScore = raw.priority_score === undefined || raw.priority_score === null
+      ? null
+      : Math.min(100, Math.max(0, Number(raw.priority_score)));
 
     return {
       id: id,
-      department: department,
+      department: raw.department || '',
       corridor: corridor,
-      description: description,
-      severity: severityFormatted,
-      duration: duration,
+      description: raw.description || '',
+      severity: severityLabel,
+      severityValue: severityNum,
+      durationMin: isNaN(durationMin) ? 0 : durationMin,
+      duration: isNaN(durationMin) ? 0 : Math.round((durationMin / 60) * 10) / 10,
+      lastMaintenanceDate: lastDate,
       maintenanceAge: maintenanceAge,
-      priorityScore: priorityScore,
-      status: status,
+      priorityScore: priorityScore === null ? 0 : Math.round(priorityScore * 100) / 100,
+      status: raw.status || 'pending',
       raw: raw
     };
   }
 
-  /**
-   * Calculate Priority Score strictly based on the 3 backend factors:
-   * 1. Severity
-   * 2. Time since maintenance (maintenance age)
-   * 3. Corridor traffic density
-   */
-  function calculatePriorityScore(severity, ageDays, corridor) {
-    let severityWeight = 30; // default medium
-    if (severity === 'Critical') severityWeight = 50;
-    else if (severity === 'High') severityWeight = 40;
-    else if (severity === 'Medium') severityWeight = 25;
-    else if (severity === 'Low') severityWeight = 15;
-
-    // Age factor (capped at 30 points for > 120 days)
-    let ageWeight = Math.min(30, Math.round((ageDays / 120) * 30));
-
-    // Corridor traffic weight (AGC-NDLS is high-density main trunk)
-    let trafficWeight = 15;
-    if (corridor.includes('AGC') || corridor.includes('NDLS') || corridor.includes('MTJ')) {
-      trafficWeight = 20; // High traffic density
-    }
-
-    return Math.min(99, severityWeight + ageWeight + trafficWeight);
-  }
-
-  /**
-   * Generate concise priority explanation based ONLY on backend factors
-   */
   function getPriorityExplanation(task) {
     if (!task) return null;
 
     const { severity, maintenanceAge, corridor, priorityScore } = task;
-
     let priorityLevel = 'Low';
-    let levelBadge = 'badge-neutral';
+    let levelBadge = 'badge-info';
     if (priorityScore >= 75) {
       priorityLevel = 'High';
       levelBadge = 'badge-danger';
     } else if (priorityScore >= 45) {
       priorityLevel = 'Medium';
       levelBadge = 'badge-warning';
-    } else {
-      priorityLevel = 'Low';
-      levelBadge = 'badge-info';
     }
 
-    // Traffic influence description
-    const isMainCorridor = corridor.includes('AGC') || corridor.includes('NDLS') || corridor.includes('MTJ');
-    const trafficInfluence = isMainCorridor 
-      ? 'High Traffic Trunk Line (Agra Cantt — New Delhi Corridor)' 
-      : 'Standard Density Feeder Line';
+    const trafficLabels = {
+      C1: 'High corridor traffic (C1)',
+      C2: 'Elevated corridor traffic (C2)',
+      C3: 'Moderate corridor traffic (C3)',
+      C4: 'Lower corridor traffic (C4)'
+    };
 
     return {
       score: priorityScore,
       level: priorityLevel,
       levelBadge: levelBadge,
-      severityFactor: `${severity} Severity Rating`,
-      ageFactor: `${maintenanceAge} days elapsed since last maintenance block`,
-      trafficFactor: trafficInfluence,
-      summary: `Priority rating of ${priorityScore}/100 (${priorityLevel}) is derived from ${severity} severity, ${maintenanceAge} days maintenance age, and ${isMainCorridor ? 'high corridor traffic density' : 'standard line density'}.`
+      severityFactor: severity + ' severity (backend score input)',
+      ageFactor: maintenanceAge + ' days since last maintenance (' + (task.lastMaintenanceDate || 'n/a') + ')',
+      trafficFactor: trafficLabels[corridor] || ('Corridor ' + corridor),
+      summary: 'Priority ' + priorityScore + '/100 from the backend rule-based score (severity, maintenance age, corridor traffic).'
     };
   }
 
-  /**
-   * Filter and sort tasks
-   */
   function getFilteredTasks() {
-    let result = [...state.tasks];
+    let result = state.tasks.slice();
     const { search, department, corridor, severity, status, priority } = state.filters;
 
-    // Search text
     if (search.trim()) {
       const q = search.toLowerCase().trim();
-      result = result.filter(t => 
-        t.id.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.corridor.toLowerCase().includes(q) ||
-        t.department.toLowerCase().includes(q)
-      );
+      result = result.filter(function (t) {
+        return t.id.toLowerCase().includes(q) ||
+          t.description.toLowerCase().includes(q) ||
+          t.corridor.toLowerCase().includes(q) ||
+          t.department.toLowerCase().includes(q);
+      });
     }
 
-    // Department
     if (department) {
-      result = result.filter(t => t.department.toLowerCase() === department.toLowerCase());
+      result = result.filter(function (t) { return t.department === department; });
     }
-
-    // Corridor
     if (corridor) {
-      result = result.filter(t => t.corridor.toLowerCase() === corridor.toLowerCase());
+      result = result.filter(function (t) { return t.corridor === corridor; });
     }
-
-    // Severity
     if (severity) {
-      result = result.filter(t => t.severity.toLowerCase() === severity.toLowerCase());
+      result = result.filter(function (t) { return t.severity.toLowerCase() === severity.toLowerCase(); });
     }
-
-    // Status
     if (status) {
-      result = result.filter(t => t.status.toLowerCase() === status.toLowerCase());
+      result = result.filter(function (t) { return t.status.toLowerCase() === status.toLowerCase(); });
     }
-
-    // Priority filter
     if (priority) {
-      if (priority === 'high') result = result.filter(t => t.priorityScore >= 75);
-      else if (priority === 'medium') result = result.filter(t => t.priorityScore >= 40 && t.priorityScore < 75);
-      else if (priority === 'low') result = result.filter(t => t.priorityScore < 40);
+      if (priority === 'high') result = result.filter(function (t) { return t.priorityScore >= 75; });
+      else if (priority === 'medium') result = result.filter(function (t) { return t.priorityScore >= 40 && t.priorityScore < 75; });
+      else if (priority === 'low') result = result.filter(function (t) { return t.priorityScore < 40; });
     }
 
-    // Sorting
-    const { field, direction } = state.sort;
-    const mult = direction === 'asc' ? 1 : -1;
-
-    result.sort((a, b) => {
+    const field = state.sort.field;
+    const mult = state.sort.direction === 'asc' ? 1 : -1;
+    result.sort(function (a, b) {
       if (field === 'priority_score') return (a.priorityScore - b.priorityScore) * mult;
-      if (field === 'severity') {
-        const sevMap = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
-        return ((sevMap[a.severity] || 0) - (sevMap[b.severity] || 0)) * mult;
-      }
+      if (field === 'severity') return ((a.severityValue || 0) - (b.severityValue || 0)) * mult;
       if (field === 'maintenance_age') return (a.maintenanceAge - b.maintenanceAge) * mult;
-      if (field === 'duration') return (a.duration - b.duration) * mult;
+      if (field === 'duration') return (a.durationMin - b.durationMin) * mult;
       if (field === 'id') return a.id.localeCompare(b.id) * mult;
       return 0;
     });
@@ -214,7 +160,7 @@ window.RailSyncTasks = (function () {
   }
 
   function setFilter(key, value) {
-    if (state.filters.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(state.filters, key)) {
       state.filters[key] = value;
       notifyStateChange();
     }
@@ -236,17 +182,13 @@ window.RailSyncTasks = (function () {
   }
 
   function getSelectedTask() {
-    return state.tasks.find(t => t.id === state.selectedTaskId) || null;
+    return state.tasks.find(function (t) { return t.id === state.selectedTaskId; }) || null;
   }
 
-  // Listeners for UI state updates
   const listeners = [];
-  function onChange(fn) {
-    listeners.push(fn);
-  }
-
+  function onChange(fn) { listeners.push(fn); }
   function notifyStateChange() {
-    listeners.forEach(fn => fn(getState()));
+    listeners.forEach(function (fn) { fn(getState()); });
   }
 
   function getState() {
@@ -256,8 +198,8 @@ window.RailSyncTasks = (function () {
       loading: state.loading,
       error: state.error,
       selectedTask: getSelectedTask(),
-      filters: { ...state.filters },
-      sort: { ...state.sort }
+      filters: Object.assign({}, state.filters),
+      sort: Object.assign({}, state.sort)
     };
   }
 

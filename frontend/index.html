@@ -41,8 +41,8 @@
       <div class="sidebar-context">
         <span class="context-dot" title="System Status: Normal"></span>
         <div class="context-info">
-          <span class="context-division">AGC DIVISION</span>
-          <span class="context-sub">NR / AGC-NDLS</span>
+          <span class="context-division">SYNTHETIC NETWORK</span>
+          <span class="context-sub">S1–S6 / C1–C4</span>
         </div>
       </div>
 
@@ -136,11 +136,11 @@
         <div class="header-right">
           <div class="ops-status-badge">
             <span class="status-indicator">
-              <span class="status-dot emerald"></span>
-              <span class="ops-label">NR / AGC-NDLS SECTION</span>
+              <span id="ops-health-dot" class="status-dot slate"></span>
+              <span id="ops-health-label" class="ops-label">Checking backend...</span>
             </span>
             <span class="ops-divider"></span>
-            <span class="ops-sync">LAST SYNC: 2026-09-10 22:11 IST</span>
+            <span id="ops-sync-label" class="ops-sync">GET /health</span>
           </div>
         </div>
       </header>
@@ -162,9 +162,9 @@
           <!-- Metrics Summary Cards Row -->
           <div class="metrics-summary-row">
             <div class="metric-card">
-              <span class="metric-label">Network Availability</span>
-              <span id="metric-network-availability" class="metric-value">-- %</span>
-              <span class="metric-sub"><span class="badge badge-neutral">Telemetry</span> Track Section Health</span>
+              <span class="metric-label">Loaded Tasks</span>
+              <span id="metric-network-availability" class="metric-value">--</span>
+              <span class="metric-sub"><span class="badge badge-neutral">GET /tasks</span> Unified TMS/SMMS/TDMS</span>
             </div>
             <div class="metric-card">
               <span class="metric-label">Active Maintenance Blocks</span>
@@ -177,9 +177,9 @@
               <span class="metric-sub"><span class="badge badge-warning">Queue</span> Block Requests</span>
             </div>
             <div class="metric-card">
-              <span class="metric-label">Train Punctuality Index</span>
-              <span id="metric-punctuality" class="metric-value">-- %</span>
-              <span class="metric-sub"><span class="badge badge-success">On Schedule</span> Main Line Punctuality</span>
+              <span class="metric-label">Punctuality</span>
+              <span id="metric-punctuality" class="metric-value">n/a</span>
+              <span class="metric-sub"><span class="badge badge-neutral">Synthetic demo</span> No live IR feed</span>
             </div>
           </div>
 
@@ -214,8 +214,8 @@
                   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
                     <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
                       <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">CORRIDOR SECTIONS</div>
-                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">AGC — MTJ — NDLS</div>
-                      <div style="font-size: 11px; color: var(--color-success-text); margin-top: 4px;">Double Track Electrified</div>
+                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">C1 — C4</div>
+                      <div style="font-size: 11px; color: var(--color-success-text); margin-top: 4px;">S1–S6 synthetic network</div>
                     </div>
                     <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
                       <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">ACTIVE TRAFFIC DENSITY</div>
@@ -304,7 +304,7 @@
                 </div>
                 <div class="card-body">
                   <div style="padding: 12px; background: var(--color-primary-50); border: 1px solid var(--color-primary-100); border-radius: var(--radius-md); font-size: 12px; color: var(--color-primary-900);">
-                    <strong>Optimization Advice:</strong> Combine P-Way track tamping and TRD overhead line inspection on AGC-MTJ UP line into a single joint block window to minimize total traffic disruption.
+                    <strong>Planning note:</strong> CP-SAT places TMS, SMMS, and TDMS work only in train-free windows on C1–C4.
                   </div>
                 </div>
               </div>
@@ -338,17 +338,18 @@
 
             <select id="filter-dept" class="filter-select">
               <option value="">All Departments</option>
-              <option value="P-Way">P-Way (Permanent Way)</option>
-              <option value="TRD">TRD / OHE (Traction)</option>
-              <option value="S&T">S&T (Signaling & Telecom)</option>
-              <option value="Civil">Civil / Bridge</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Track Maintenance">Track Maintenance</option>
+              <option value="Signal & Telecom">Signal & Telecom</option>
+              <option value="Electrical">Electrical</option>
             </select>
 
             <select id="filter-corridor" class="filter-select">
               <option value="">All Corridors</option>
-              <option value="AGC-MTJ">AGC-MTJ (Agra Cantt - Mathura)</option>
-              <option value="MTJ-KSV">MTJ-KSV (Mathura - Kosi Kalan)</option>
-              <option value="KSV-NDLS">KSV-NDLS (Kosi Kalan - New Delhi)</option>
+              <option value="C1">C1 (S1 → S2 → S3)</option>
+              <option value="C2">C2 (S2 → S4)</option>
+              <option value="C3">C3 (S2 → S5)</option>
+              <option value="C4">C4 (S4 → S6)</option>
             </select>
 
             <select id="filter-severity" class="filter-select">
@@ -368,10 +369,11 @@
 
             <select id="filter-status" class="filter-select">
               <option value="">All Statuses</option>
-              <option value="Unassigned">Unassigned</option>
-              <option value="Pending Approval">Pending Approval</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="Approved">Approved</option>
+              <option value="pending">pending</option>
+              <option value="scheduled">scheduled</option>
+              <option value="approved">approved</option>
+              <option value="overrun">overrun</option>
+              <option value="done">done</option>
             </select>
           </div>
 
@@ -384,7 +386,7 @@
                   <th class="th-sortable" data-sort-field="corridor">Corridor <span class="sort-icon">↕</span></th>
                   <th>Description</th>
                   <th class="th-sortable" data-sort-field="severity">Severity <span class="sort-icon">↕</span></th>
-                  <th class="th-sortable" data-sort-field="duration">Duration <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="duration">Duration (min) <span class="sort-icon">↕</span></th>
                   <th class="th-sortable" data-sort-field="maintenance_age">Age <span class="sort-icon">↕</span></th>
                   <th class="th-sortable" data-sort-field="priority_score">Priority <span class="sort-icon">↕</span></th>
                   <th class="th-sortable" data-sort-field="status">Status <span class="sort-icon">↕</span></th>
@@ -414,12 +416,12 @@
             <div class="planning-group">
               <span class="planning-label">Section:</span>
               <select class="filter-select">
-                <option value="AGC-NDLS">Agra Cantt - New Delhi (AGC-NDLS Main Line)</option>
+                <option value="C1-C4">C1–C4 synthetic operating network</option>
               </select>
 
               <span class="planning-label" style="margin-left: 12px;">Time Window:</span>
               <select class="filter-select">
-                <option value="24h">Next 24 Hours (Operational Day)</option>
+                <option value="01-08">2026-09-09 01:00–08:00 UTC</option>
               </select>
             </div>
 
@@ -512,7 +514,7 @@
                 <div class="planning-group">
                   <span class="planning-label">Section Schematic:</span>
                   <select class="filter-select">
-                    <option value="AGC-NDLS">AGC (Agra Cantt) — MTJ (Mathura) — NDLS (New Delhi)</option>
+                    <option value="C1-C4">S1 Central Junction — S6 South Terminal</option>
                   </select>
                 </div>
                 <span class="badge badge-neutral">Synthetic Timetable Data</span>
@@ -559,13 +561,13 @@
 
       <div class="drawer-footer">
         <button class="btn btn-secondary" data-dismiss="drawer">Close</button>
-        <button class="btn btn-primary" onclick="alert('Task selected for block planning synthesis.')">Include in Plan</button>
       </div>
     </div>
   </div>
 
 
   <!-- JavaScript Application Files -->
+  <script>window.RAILSYNC_API_BASE = window.RAILSYNC_API_BASE || 'http://127.0.0.1:8000';</script>
   <script src="js/api.js"></script>
   <script src="js/taskManager.js"></script>
   <script src="js/planManager.js"></script>

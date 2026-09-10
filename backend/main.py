@@ -11,7 +11,9 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.ingest import unified_maintenance_tasks
@@ -24,6 +26,17 @@ DEFAULT_DATABASE_PATH = ROOT_DIR / "backend" / "railsync.db"
 DATABASE_PATH = Path(os.getenv("RAILSYNC_DATABASE_PATH", DEFAULT_DATABASE_PATH))
 PLANNING_DATE = date(2026, 9, 9)
 CORRIDOR_TRAFFIC = {"C1": 1.0, "C2": 0.8, "C3": 0.6, "C4": 0.5}
+LOCAL_CORS_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:8080",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "null",
+]
 
 
 class ApprovePlanRequest(BaseModel):
@@ -239,6 +252,14 @@ def _generate_for_tasks(connection: sqlite3.Connection, tasks: list[sqlite3.Row]
 def create_app() -> FastAPI:
     _connect_and_initialize()
     application = FastAPI(title="RailSync AI", version="0.2.0")
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=LOCAL_CORS_ORIGINS,
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
 
     @application.exception_handler(RequestValidationError)
     async def validation_error_handler(_: Request, exception: RequestValidationError):
@@ -346,6 +367,10 @@ def create_app() -> FastAPI:
             if schedule is None:
                 return _error(404, "No current plan", "No active or approved schedule exists")
             return _stored_schedule(connection, schedule["schedule_id"])
+
+    data_dir = ROOT_DIR / "data"
+    if data_dir.is_dir():
+        application.mount("/data", StaticFiles(directory=str(data_dir)), name="data")
 
     return application
 

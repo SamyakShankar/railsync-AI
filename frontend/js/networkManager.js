@@ -1,43 +1,98 @@
-/* RailSync AI - Network Corridor Schematic & Train Telemetry Manager */
+/* RailSync AI - Synthetic network from project data files */
 
 window.RailSyncNetwork = (function () {
   'use strict';
 
-  // 6 Stations along Agra Cantt — New Delhi Corridor
-  const STATIONS = [
-    { code: 'AGC', name: 'Agra Cantt', km: 0, platformCount: 6, status: 'Normal', division: 'Agra (AGC)' },
-    { code: 'RKM', name: 'Raja Ki Mandi', km: 18, platformCount: 4, status: 'Normal', division: 'Agra (AGC)' },
-    { code: 'MHO', name: 'Mahoha / Mathura S', km: 42, platformCount: 3, status: 'Normal', division: 'Agra (AGC)' },
-    { code: 'MTJ', name: 'Mathura Junction', km: 54, platformCount: 10, status: 'Junction Operational', division: 'Agra (AGC)' },
-    { code: 'KSV', name: 'Kosi Kalan', km: 102, platformCount: 4, status: 'Normal', division: 'Delhi (DLI)' },
-    { code: 'NDLS', name: 'New Delhi', km: 195, platformCount: 16, status: 'Terminal Operational', division: 'Delhi (DLI)' }
-  ];
+  const CORRIDOR_LABELS = {
+    C1: 'C1: S1 → S2 → S3',
+    C2: 'C2: S2 → S4',
+    C3: 'C3: S2 → S5',
+    C4: 'C4: S4 → S6'
+  };
 
-  // 4 Corridor Track Segments
-  const CORRIDORS = [
-    { id: 'COR-AGC-RKM', name: 'AGC — RKM', startStation: 'AGC', endStation: 'RKM', lengthKm: 18, tracks: 'Double Line', maxSpeed: 130, status: 'Operational' },
-    { id: 'COR-RKM-MTJ', name: 'RKM — MTJ', startStation: 'RKM', endStation: 'MTJ', lengthKm: 36, tracks: 'Double Line', maxSpeed: 130, status: 'Operational' },
-    { id: 'COR-MTJ-KSV', name: 'MTJ — KSV', startStation: 'MTJ', endStation: 'KSV', lengthKm: 48, tracks: 'Double Line', maxSpeed: 130, status: 'Operational' },
-    { id: 'COR-KSV-NDLS', name: 'KSV — NDLS', startStation: 'KSV', endStation: 'NDLS', lengthKm: 93, tracks: 'Double Line', maxSpeed: 130, status: 'Operational' }
-  ];
-
-  // 7 Synthetic Demo Trains
-  const TRAINS = [
-    { id: 'TRN-12004', number: '12004', name: 'Shatabdi Express', type: 'Superfast Passenger', direction: 'UP (NDLS Bound)', section: 'COR-MTJ-KSV', positionPct: 45, speed: '130 km/h', status: 'On Schedule', delayMins: 0, timetable: '06:00 AGC - 09:30 NDLS' },
-    { id: 'TRN-12626', number: '12626', name: 'Kerala Express', type: 'Superfast Express', direction: 'UP (NDLS Bound)', section: 'COR-AGC-RKM', positionPct: 20, speed: '110 km/h', status: 'On Schedule', delayMins: 0, timetable: '08:30 AGC - 12:15 NDLS' },
-    { id: 'TRN-22415', number: '22415', name: 'Vande Bharat Express', type: 'Vande Bharat', direction: 'DOWN (AGC Bound)', section: 'COR-KSV-NDLS', positionPct: 75, speed: '130 km/h', status: 'On Schedule', delayMins: 0, timetable: '11:30 NDLS - 14:15 AGC' },
-    { id: 'TRN-12952', number: '12952', name: 'New Delhi Rajdhani', type: 'Rajdhani Express', direction: 'UP (NDLS Bound)', section: 'COR-RKM-MTJ', positionPct: 60, speed: '130 km/h', status: 'On Schedule', delayMins: 0, timetable: '17:00 AGC - 20:15 NDLS' },
-    { id: 'FRT-55102', number: 'FRT-55102', name: 'BJU Container Freight', type: 'Freight (Container)', direction: 'DOWN (AGC Bound)', section: 'COR-MTJ-KSV', positionPct: 30, speed: '75 km/h', status: 'Operating', delayMins: 0, timetable: '14:00 MTJ - 17:30 AGC' },
-    { id: 'FRT-88201', number: 'FRT-88201', name: 'Coal Rake Special', type: 'Freight (Heavy Rake)', direction: 'DOWN (AGC Bound)', section: 'COR-AGC-RKM', positionPct: 80, speed: '60 km/h', status: 'Operating', delayMins: 0, timetable: '20:30 MTJ - 23:45 AGC' },
-    { id: 'FRT-99304', number: 'FRT-99304', name: 'NDLS Express Goods', type: 'Freight (Parcel)', direction: 'UP (NDLS Bound)', section: 'COR-KSV-NDLS', positionPct: 25, speed: '80 km/h', status: 'Operating', delayMins: 0, timetable: '02:00 AGC - 06:15 NDLS' }
-  ];
-
-  // State
   const state = {
+    stations: [],
+    corridors: [],
+    trains: [],
+    movements: [],
+    loading: false,
+    error: null,
     selectedTrainId: null,
     selectedCorridorId: null,
     selectedStationCode: null
   };
+
+  async function loadNetwork() {
+    state.loading = true;
+    state.error = null;
+    notifyStateChange();
+
+    const result = await RailSyncAPI.fetchNetwork();
+    state.loading = false;
+    if (!result.ok) {
+      state.stations = [];
+      state.corridors = [];
+      state.trains = [];
+      state.movements = [];
+      state.error = result.error;
+      notifyStateChange();
+      return result;
+    }
+
+    const data = result.data;
+    state.stations = (data.stations || []).map(function (s) {
+      return {
+        code: s.station_id,
+        name: s.name,
+        km: 0,
+        platformCount: 0,
+        status: 'Synthetic node',
+        division: 'RailSync demo'
+      };
+    });
+    state.corridors = (data.corridors || []).map(function (c) {
+      return {
+        id: c.corridor_id,
+        name: CORRIDOR_LABELS[c.corridor_id] || c.corridor_id,
+        stationIds: c.station_ids || [],
+        startStation: (c.station_ids || [])[0],
+        endStation: (c.station_ids || [])[(c.station_ids || []).length - 1],
+        capacity: c.capacity,
+        status: 'Operational',
+        tracks: 'Capacity ' + c.capacity
+      };
+    });
+    state.trains = (data.trains || []).map(function (t, idx) {
+      const route = t.route || [];
+      const section = inferCorridor(route, state.corridors);
+      return {
+        id: t.train_id,
+        number: t.train_id,
+        name: t.train_id,
+        type: 'Synthetic service',
+        direction: route[0] + ' → ' + route[route.length - 1],
+        section: section,
+        positionPct: 20 + (idx * 10) % 60,
+        speed: 'n/a',
+        status: 'Timetable (synthetic)',
+        delayMins: 0,
+        timetable: route.join(' → ')
+      };
+    });
+    state.movements = data.movements || [];
+    notifyStateChange();
+    return result;
+  }
+
+  function inferCorridor(route, corridors) {
+    for (let i = 0; i < corridors.length; i += 1) {
+      const ids = corridors[i].stationIds || [];
+      if (ids.length && route.indexOf(ids[0]) >= 0 && route.indexOf(ids[ids.length - 1]) >= 0) {
+        return corridors[i].id;
+      }
+    }
+    return corridors[0] ? corridors[0].id : '';
+  }
 
   function selectTrain(trainId) {
     state.selectedTrainId = trainId;
@@ -61,27 +116,31 @@ window.RailSyncNetwork = (function () {
   }
 
   function getSelectedTrain() {
-    return TRAINS.find(t => t.id === state.selectedTrainId) || null;
+    return state.trains.find(function (t) { return t.id === state.selectedTrainId; }) || null;
   }
 
   function getSelectedCorridor() {
-    return CORRIDORS.find(c => c.id === state.selectedCorridorId) || null;
+    return state.corridors.find(function (c) { return c.id === state.selectedCorridorId; }) || null;
   }
 
   function getSelectedStation() {
-    return STATIONS.find(s => s.code === state.selectedStationCode) || null;
+    return state.stations.find(function (s) { return s.code === state.selectedStationCode; }) || null;
   }
 
-  // Listeners
   const listeners = [];
   function onChange(fn) { listeners.push(fn); }
-  function notifyStateChange() { listeners.forEach(fn => fn(getState())); }
+  function notifyStateChange() {
+    listeners.forEach(function (fn) { fn(getState()); });
+  }
 
   function getState() {
     return {
-      stations: STATIONS,
-      corridors: CORRIDORS,
-      trains: TRAINS,
+      stations: state.stations,
+      corridors: state.corridors,
+      trains: state.trains,
+      movements: state.movements,
+      loading: state.loading,
+      error: state.error,
       selectedTrain: getSelectedTrain(),
       selectedCorridor: getSelectedCorridor(),
       selectedStation: getSelectedStation()
@@ -89,6 +148,7 @@ window.RailSyncNetwork = (function () {
   }
 
   return {
+    loadNetwork: loadNetwork,
     selectTrain: selectTrain,
     selectCorridor: selectCorridor,
     selectStation: selectStation,
