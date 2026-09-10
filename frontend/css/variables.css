@@ -1,0 +1,102 @@
+/* RailSync AI - Enterprise Design Tokens & Theme Variables */
+:root {
+  /* Primary & Accent Colors - Indian Railways Indigo/Navy */
+  --color-primary-900: #0f172a;
+  --color-primary-800: #1e1b4b;
+  --color-primary-700: #312e81;
+  --color-primary-600: #3730a3;
+  --color-primary-500: #4338ca;
+  --color-primary-400: #6366f1;
+  --color-primary-100: #e0e7ff;
+  --color-primary-50:  #eef2ff;
+
+  /* Neutral Background & Surface Colors */
+  --color-bg-app:      #f8fafc;
+  --color-bg-surface:  #ffffff;
+  --color-bg-subtle:   #f1f5f9;
+  --color-bg-muted:    #e2e8f0;
+
+  /* Sidebar Specific Colors */
+  --color-sidebar-bg:  #0f172a;
+  --color-sidebar-border: #1e293b;
+  --color-sidebar-text: #94a3b8;
+  --color-sidebar-text-active: #ffffff;
+  --color-sidebar-hover: #1e293b;
+  --color-sidebar-active: #1e1b4b;
+
+  /* Border & Divider Colors */
+  --color-border-subtle: #f1f5f9;
+  --color-border-default: #e2e8f0;
+  --color-border-strong:  #cbd5e1;
+
+  /* Typography Text Colors */
+  --color-text-primary:   #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted:     #64748b;
+  --color-text-inverse:   #ffffff;
+
+  /* Semantic Operational Status Colors */
+  --color-success-bg:     #ecfdf5;
+  --color-success-text:   #047857;
+  --color-success-border: #a7f3d0;
+  --color-success-dot:    #10b981;
+
+  --color-warning-bg:     #fffbeb;
+  --color-warning-text:   #b45309;
+  --color-warning-border: #fde68a;
+  --color-warning-dot:    #f59e0b;
+
+  --color-danger-bg:      #fef2f2;
+  --color-danger-text:    #b91c1c;
+  --color-danger-border:  #fca5a5;
+  --color-danger-dot:     #ef4444;
+
+  --color-info-bg:        #eff6ff;
+  --color-info-text:      #1d4ed8;
+  --color-info-border:    #bfdbfe;
+  --color-info-dot:       #3b82f6;
+
+  --color-neutral-bg:     #f8fafc;
+  --color-neutral-text:   #475569;
+  --color-neutral-border: #e2e8f0;
+  --color-neutral-dot:    #94a3b8;
+
+  /* Fonts & Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.8125rem; /* 13px */
+  --font-size-base: 0.875rem;/* 14px */
+  --font-size-md: 0.9375rem; /* 15px */
+  --font-size-lg: 1rem;      /* 16px */
+  --font-size-xl: 1.125rem;  /* 18px */
+  --font-size-2xl: 1.25rem;  /* 20px */
+  --font-size-3xl: 1.5rem;   /* 24px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Layout Dimensions */
+  --sidebar-width: 250px;
+  --sidebar-width-collapsed: 68px;
+  --topbar-height: 60px;
+
+  /* Borders & Radius (Restrained enterprise cards) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-full: 9999px;
+
+  /* Shadows (Subtle, operational enterprise look) */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -1,1079 +1,576 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dispatch AI</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #f0eef8; --sidebar-bg: #f7f5fd; --white: #ffffff;
-  --purple: #7c3aed; --purple-light: #ede9fe; --purple-mid: #a78bfa;
-  --teal: #06b6d4; --green: #22c55e; --orange: #f97316; --red: #ef4444;
-  --text-dark: #1e1b2e; --text-mid: #6b7280; --text-light: #9ca3af;
-  --border: #e5e3f0; --label: #7c3aed;
-  --font: 'DM Sans', sans-serif; --font-display: 'Space Grotesk', sans-serif;
-  --sw: 230px; --swc: 64px;
-}
-body { font-family: var(--font); background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
-
-/* NAV */
-nav { height: 56px; background: var(--white); display: flex; align-items: center; padding: 0 24px; gap: 32px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
-.logo { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -.5px; white-space: nowrap; }
-.logo span:first-child { color: var(--purple); }
-.logo span:last-child { color: var(--text-dark); }
-.nav-links { display: flex; gap: 28px; flex: 1; }
-.nav-links a { font-size: 14px; font-weight: 500; color: var(--text-mid); text-decoration: none; padding-bottom: 4px; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
-.nav-links a.active { color: var(--purple); border-bottom-color: var(--purple); }
-.nav-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.bell { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg); cursor: pointer; }
-.admin-pill { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-dark); }
-.avatar { width: 30px; height: 30px; border-radius: 50%; background: #d1d5db; display: flex; align-items: center; justify-content: center; }
-
-/* LAYOUT */
-.layout { display: flex; flex: 1; min-height: calc(100vh - 56px); }
-
-/* SIDEBAR */
-aside { width: var(--sw); min-width: var(--sw); background: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; transition: width .25s ease, min-width .25s ease; overflow: hidden; position: relative; }
-aside.collapsed { width: var(--swc); min-width: var(--swc); }
-.sb-toggle { position: absolute; top: 16px; right: -12px; z-index: 10; width: 24px; height: 24px; border-radius: 50%; background: var(--white); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.08); transition: transform .25s; }
-aside.collapsed .sb-toggle { transform: rotate(180deg); }
-.sb-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--text-light); text-transform: uppercase; padding: 0 10px; margin-bottom: 8px; white-space: nowrap; transition: opacity .2s; }
-aside.collapsed .sb-label { opacity: 0; }
-.node-card { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; margin-bottom: 14px; }
-.node-icon { width: 36px; height: 36px; min-width: 36px; border-radius: 10px; background: var(--purple); display: flex; align-items: center; justify-content: center; }
-.node-info { opacity: 1; transition: opacity .2s; white-space: nowrap; overflow: hidden; }
-aside.collapsed .node-info { opacity: 0; width: 0; }
-.node-info .name { font-size: 12px; font-weight: 700; color: var(--text-dark); }
-.node-info .status { font-size: 10px; font-weight: 600; letter-spacing: .8px; color: var(--green); text-transform: uppercase; }
-.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-mid); transition: background .15s; white-space: nowrap; overflow: hidden; }
-.nav-item:hover { background: var(--purple-light); color: var(--purple); }
-.nav-item.active { background: var(--purple-light); color: var(--purple); font-weight: 600; }
-.nav-item svg { flex-shrink: 0; }
-.item-lbl { transition: opacity .2s; }
-aside.collapsed .item-lbl { opacity: 0; width: 0; overflow: hidden; }
-aside.collapsed .nav-item { justify-content: center; }
-.upgrade-btn { margin-top: auto; background: linear-gradient(135deg, #4f46e5, #06b6d4); color: #fff; border: none; border-radius: 12px; padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; white-space: nowrap; overflow: hidden; transition: opacity .2s; }
-aside.collapsed .upgrade-btn { opacity: 0; pointer-events: none; }
-
-/* PAGES */
-.page { display: none; flex: 1; flex-direction: column; overflow: auto; }
-.page.active { display: flex; }
-
-/* SHARED */
-.card { background: var(--white); border-radius: 18px; border: 1px solid var(--border); overflow: hidden; }
-.section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: var(--label); text-transform: uppercase; margin-bottom: 4px; }
-.page-title { font-family: var(--font-display); font-size: 34px; font-weight: 700; color: var(--text-dark); letter-spacing: -1px; line-height: 1.1; }
-.panel-title { font-size: 11px; font-weight: 700; letter-spacing: 1.3px; color: var(--text-dark); text-transform: uppercase; margin-bottom: 14px; }
-footer { padding: 12px 32px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-light); background: var(--white); margin-top: auto; }
-footer a { color: var(--text-mid); text-decoration: underline; }
-.footer-links { display: flex; gap: 18px; }
-
-/* DASHBOARD */
-#page-dashboard main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 22px; }
-.input-card { padding: 22px; }
-.input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.input-header .lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text-mid); text-transform: uppercase; }
-.auto-badge { display: flex; align-items: center; gap: 6px; background: var(--teal); color: #fff; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px; }
-.auto-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.8); }
-.prompt-area { background: #f7f5fd; border-radius: 12px; min-height: 140px; padding: 16px 18px; font-size: 15px; color: var(--text-dark); outline: none; border: 1.5px solid transparent; white-space: pre-wrap; line-height: 1.6; transition: border-color .15s, background .15s; }
-.prompt-area:focus { border-color: var(--purple-mid); background: var(--white); }
-.prompt-area.is-empty::before { content: attr(data-placeholder); color: #c4b8e8; }
-.api-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-top: 16px; }
-.api-url-group { flex: 1; min-width: 260px; }
-.backend-status { display: inline-flex; align-items: center; gap: 6px; background: var(--teal); color: #fff; font-size: 11px; font-weight: 700; padding: 8px 12px; border-radius: 20px; min-height: 40px; }
-.backend-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.85); }
-.backend-status.offline { background: var(--red); }
-.backend-status.checking { background: var(--orange); }
-.route-btn-wrap { display: flex; justify-content: center; margin-top: 18px; }
-.route-btn { background: linear-gradient(135deg, #4338ca, #5b21b6); color: #fff; border: none; border-radius: 50px; padding: 14px 44px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-.route-btn:disabled { opacity: .72; cursor: wait; }
-.response-row { display: grid; grid-template-columns: 1fr 200px; gap: 16px; align-items: start; }
-.response-card { padding: 20px; }
-.response-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.response-header .lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text-mid); text-transform: uppercase; }
-.success-badge { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--green); }
-.success-badge.idle { color: var(--text-mid); }
-.success-badge.loading { color: var(--orange); }
-.success-badge.error { color: var(--red); }
-.response-body { font-size: 14px; color: var(--text-dark); line-height: 1.75; white-space: pre-wrap; min-height: 96px; }
-.response-empty { color: var(--text-mid); }
-.response-body.error { color: var(--red); }
-.skeleton { height: 11px; border-radius: 6px; background: #ede9fe; margin-bottom: 10px; }
-.route-path-card { background: #f3f0ff; border-radius: 18px; border: 1px solid #ddd6fe; padding: 18px 20px; }
-.route-path-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--purple); text-transform: uppercase; margin-bottom: 6px; }
-.route-model { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--text-dark); letter-spacing: -.5px; margin-bottom: 3px; }
-.route-desc { font-size: 13px; color: var(--text-mid); margin-bottom: 14px; line-height: 1.4; }
-.latency-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 7px; }
-.latency-row .key { color: var(--text-mid); }
-.latency-row .val { font-weight: 700; color: var(--purple); }
-.latency-bar { height: 5px; border-radius: 3px; background: #ddd6fe; }
-.latency-fill { height: 100%; width: 70%; background: var(--purple); border-radius: 3px; }
-.route-debug { margin-top: 14px; display: grid; gap: 7px; }
-.route-debug .val { text-align: right; word-break: break-word; }
-
-/* ANALYTICS */
-#page-analytics main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 22px; }
-.a-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.traffic-card { padding: 20px; }
-.heatmap-img { width: 100%; height: 110px; border-radius: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 35%, #f97316 65%, #ef4444 100%); position: relative; overflow: hidden; }
-.heatmap-img::after { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='120'%3E%3Cpath d='M0 80 Q50 20 100 60 T200 40 T300 70 T400 30' stroke='rgba(255,255,255,0.35)' fill='none' stroke-width='2'/%3E%3Cpath d='M0 60 Q80 10 160 50 T320 30 T400 55' stroke='rgba(255,255,255,0.2)' fill='none' stroke-width='1.5'/%3E%3C/svg%3E"); }
-.traffic-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-.stat-label { font-size: 10px; font-weight: 600; letter-spacing: .8px; color: var(--text-light); text-transform: uppercase; margin-bottom: 2px; }
-.stat-val { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-dark); }
-.efficiency-card { padding: 20px; border-left: 4px solid var(--purple); }
-.savings-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-.savings-label { font-size: 14px; color: var(--text-dark); font-weight: 500; }
-.savings-val { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--green); }
-.last24 { font-size: 10px; font-weight: 600; letter-spacing: .8px; color: var(--text-light); text-transform: uppercase; margin-bottom: 12px; }
-.token-row { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 10px; padding: 11px; margin-bottom: 8px; }
-.token-icon { width: 32px; height: 32px; min-width: 32px; border-radius: 8px; background: var(--purple-light); display: flex; align-items: center; justify-content: center; }
-.token-val { font-weight: 700; font-size: 13px; color: var(--text-dark); }
-.token-sub { font-size: 11px; color: var(--text-mid); }
-.cluster-card { padding: 20px; }
-.cluster-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
-.cluster-item:last-child { border-bottom: none; }
-.dot { width: 9px; height: 9px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
-.dot.green { background: var(--green); }
-.dot.orange { background: var(--orange); }
-.cluster-name { font-size: 14px; font-weight: 500; color: var(--text-dark); flex: 1; }
-.cluster-status { font-size: 12px; color: var(--text-mid); }
-.cluster-status.high { color: var(--orange); }
-.mini-chart { width: 100%; height: 65px; display: flex; align-items: flex-end; gap: 5px; }
-.bar { flex: 1; border-radius: 4px 4px 0 0; background: var(--purple-light); cursor: pointer; transition: background .15s; }
-.bar:hover,.bar.peak { background: var(--purple); }
-.range-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-light); margin-top: 4px; }
-
-/* MODELS */
-#page-models main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 22px; }
-.models-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-.model-card { background: var(--white); border-radius: 18px; border: 1px solid var(--border); padding: 22px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .2s, border-color .2s; }
-.model-card:hover { box-shadow: 0 4px 20px rgba(124,58,237,.1); border-color: var(--purple-mid); }
-.model-card.add-card { border: 2px dashed var(--border); background: transparent; align-items: center; justify-content: center; cursor: pointer; min-height: 200px; color: var(--text-mid); gap: 8px; }
-.model-card.add-card:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-light); }
-.model-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-.model-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-dark); }
-.model-provider { font-size: 12px; color: var(--text-mid); margin-top: -5px; }
-.mbadge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; width: fit-content; }
-.bg { background: #dcfce7; color: #16a34a; }
-.bo { background: #ffedd5; color: #c2410c; }
-.bb { background: #dbeafe; color: #1d4ed8; }
-.model-stats { display: flex; gap: 16px; }
-.mstat { font-size: 11px; color: var(--text-mid); }
-.mstat strong { display: block; font-size: 13px; color: var(--text-dark); font-weight: 700; }
-.model-actions { display: flex; gap: 8px; margin-top: 4px; }
-.btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
-.btn-primary { background: var(--purple); color: #fff; }
-.btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-mid); }
-.btn-outline:hover { border-color: var(--purple); color: var(--purple); }
-.add-icon { width: 48px; height: 48px; border-radius: 50%; border: 2px dashed currentColor; display: flex; align-items: center; justify-content: center; font-size: 26px; }
-
-/* HISTORY */
-#page-history main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 20px; }
-.hist-filters { display: flex; gap: 10px; align-items: center; }
-.filter-btn { padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--white); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-mid); }
-.filter-btn.active { background: var(--purple-light); border-color: var(--purple); color: var(--purple); }
-.search-bar { flex: 1; max-width: 280px; padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 13px; font-family: var(--font); color: var(--text-dark); outline: none; }
-.search-bar:focus { border-color: var(--purple); }
-.history-table { width: 100%; border-collapse: collapse; }
-.history-table th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-light); padding: 0 16px 12px; border-bottom: 1px solid var(--border); }
-.history-table td { padding: 13px 16px; font-size: 14px; color: var(--text-dark); border-bottom: 1px solid var(--border); vertical-align: middle; }
-.history-table tr:last-child td { border-bottom: none; }
-.history-table tr:hover td { background: #faf9ff; }
-.history-empty td { color: var(--text-mid); text-align: center; padding: 24px 16px; }
-.tag { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-.tag-s { background: #dcfce7; color: #16a34a; }
-.tag-w { background: #ffedd5; color: #c2410c; }
-.mpill { display: inline-flex; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: var(--purple-light); color: var(--purple); }
-.mpill-o { background: #ffedd5; color: #c2410c; }
-
-/* SETTINGS */
-#page-settings main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 22px; }
-.settings-layout { display: grid; grid-template-columns: 210px 1fr; gap: 22px; }
-.settings-nav { display: flex; flex-direction: column; gap: 4px; }
-.sn-item { padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-mid); cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 9px; }
-.sn-item:hover { background: var(--purple-light); color: var(--purple); }
-.sn-item.active { background: var(--purple-light); color: var(--purple); font-weight: 600; }
-.sp { display: none; flex-direction: column; gap: 18px; }
-.sp.active { display: flex; }
-.ss { background: var(--white); border-radius: 18px; border: 1px solid var(--border); padding: 24px; }
-.ss h3 { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.fg { display: flex; flex-direction: column; gap: 6px; }
-.fg.full { grid-column: 1 / -1; }
-.flabel { font-size: 12px; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: .5px; }
-.finput { padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 14px; font-family: var(--font); color: var(--text-dark); outline: none; background: var(--bg); }
-.finput:focus { border-color: var(--purple); background: var(--white); }
-.fselect { padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 14px; font-family: var(--font); color: var(--text-dark); outline: none; background: var(--bg); width: 100%; }
-.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
-.toggle-title { font-size: 14px; font-weight: 600; color: var(--text-dark); }
-.toggle-sub { font-size: 12px; color: var(--text-mid); margin-top: 2px; }
-.toggle { width: 42px; height: 24px; border-radius: 12px; background: #d1d5db; border: none; cursor: pointer; position: relative; transition: background .2s; flex-shrink: 0; }
-.toggle.on { background: var(--purple); }
-.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
-.toggle.on::after { transform: translateX(18px); }
-.save-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
-.btn-save { padding: 10px 24px; border-radius: 10px; background: var(--purple); color: #fff; border: none; font-size: 14px; font-weight: 700; cursor: pointer; }
-.btn-cancel-s { padding: 10px 20px; border-radius: 10px; background: transparent; border: 1.5px solid var(--border); font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text-mid); }
-.dz { border-color: #fecaca; }
-.dz h3 { color: var(--red); border-bottom-color: #fecaca; }
-.dbtn { padding: 8px 16px; border-radius: 9px; border: 1.5px solid #fecaca; background: #fff0f0; color: var(--red); font-size: 13px; font-weight: 600; cursor: pointer; }
-.dbtn:hover { background: #fee2e2; }
-.range-input { width: 100%; accent-color: var(--purple); margin-top: 6px; }
-
-/* NEW CHAT BUTTON */
-.new-chat-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #4f46e5, #7c3aed); margin-bottom: 10px; white-space: nowrap; overflow: hidden; transition: opacity .15s; }
-.new-chat-btn:hover { opacity: .88; }
-.new-chat-btn svg { flex-shrink: 0; }
-aside.collapsed .new-chat-btn { justify-content: center; }
-
-/* SETTINGS GEAR IN NAV */
-.settings-icon-wrap { position: relative; }
-.settings-icon-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg); cursor: pointer; transition: background .15s; }
-.settings-icon-btn:hover { background: var(--purple-light); }
-.settings-icon-btn:hover svg { stroke: var(--purple); }
-.settings-dropdown { display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 210px; background: var(--white); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.12); padding: 8px; z-index: 300; }
-.settings-dropdown.open { display: block; }
-.sd-title { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--text-light); text-transform: uppercase; padding: 6px 10px 8px; }
-.sd-item { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 9px; font-size: 13px; font-weight: 500; color: var(--text-dark); cursor: pointer; transition: background .12s; }
-.sd-item:hover { background: var(--purple-light); color: var(--purple); }
-.sd-danger { color: var(--red); }
-.sd-danger:hover { background: #fff0f0; color: var(--red); }
-
-/* MODAL */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; align-items: center; justify-content: center; }
-.modal-overlay.open { display: flex; }
-.modal { background: var(--white); border-radius: 20px; padding: 28px; width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
-.modal h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text-dark); margin-bottom: 20px; }
-.modal .fg { margin-bottom: 14px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RailSync AI - Indian Railways Block Operations System</title>
+  
+  <!-- CSS Design System & Theme Files -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
 </head>
 <body>
 
-<nav>
-  <div class="logo"><span>Dispatch</span><span> AI</span></div>
-  <div class="nav-links">
-    <a class="active" onclick="showPage('dashboard',this)">Dashboard</a>
-    <a onclick="showPage('analytics',this)">Analytics</a>
-    <a onclick="showPage('models',this)">Models</a>
-    <a onclick="showPage('history',this)">History</a>
-  </div>
-  <div class="nav-right">
-    <div class="settings-icon-wrap" id="settingsWrap">
-      <div class="settings-icon-btn" onclick="toggleSettingsMenu()" title="Settings">
-        <svg width="17" height="17" fill="none" stroke="#6b7280" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </div>
-      <div class="settings-dropdown" id="settingsDropdown">
-        <div class="sd-title">Settings</div>
-        <div class="sd-item" onclick="openSettings('general')">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          General
+  <div class="app-shell">
+
+    <!-- ====================================================
+         1. SIDEBAR NAVIGATION
+    ==================================================== -->
+    <aside id="app-sidebar" class="app-sidebar">
+      
+      <!-- Branding Area -->
+      <div class="sidebar-branding">
+        <div class="branding-logo">
+          <div class="brand-emblem" title="Indian Railways RailSync AI">IR</div>
+          <div class="brand-text">
+            <span class="brand-name">RailSync AI</span>
+            <span class="brand-tag">INDIAN RAILWAYS</span>
+          </div>
         </div>
-        <div class="sd-item" onclick="openSettings('routing')">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
-          Routing Rules
-        </div>
-        <div class="sd-item" onclick="openSettings('notifications')">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Notifications
-        </div>
-        <div class="sd-item" onclick="openSettings('billing')">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          Billing
-        </div>
-        <div class="sd-item sd-danger" onclick="openSettings('danger')">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Danger Zone
-        </div>
-      </div>
-    </div>
-    <div class="admin-pill">
-      <div class="avatar">
-        <svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-      </div>
-      Admin
-    </div>
-  </div>
-</nav>
-
-<div class="layout">
-
-<!-- SIDEBAR -->
-<aside id="sidebar">
-  <div class="sb-toggle" onclick="toggleSidebar()">
-    <svg width="12" height="12" fill="none" stroke="#6b7280" stroke-width="2.5" viewBox="0 0 24 24">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-  </div>
-  <div class="sb-label">Main Dashboard</div>
-  <div class="node-card">
-    <div class="node-icon">
-      <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/>
-        <line x1="12" y1="3" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="21"/>
-        <line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/>
-      </svg>
-    </div>
-    <div class="node-info">
-      <div class="name">Router Node 01</div>
-      <div class="status">Active Service</div>
-    </div>
-  </div>
-
-  <div class="new-chat-btn" onclick="setSB('sb-routing');showPage('dashboard',null)" title="New Chat">
-    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    <span class="item-lbl">New Chat</span>
-  </div>
-
-  <div class="nav-item active" id="sb-routing" onclick="showPage('dashboard',null);setSB('sb-routing')">
-    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
-    </svg>
-    <span class="item-lbl">Chat History</span>
-  </div>
-
-
-</aside>
-
-<!-- ═══ DASHBOARD ═══ -->
-<div class="page active" id="page-dashboard">
-  <main>
-    <div>
-      <div class="section-label">Primary Node Control</div>
-      <div class="page-title">Dispatch AI Router</div>
-    </div>
-    <div class="card input-card">
-      <div class="input-header">
-        <span class="lbl">Prompt</span>
-        <span class="auto-badge">Live Router</span>
-      </div>
-      <div class="prompt-area is-empty" id="promptInput" contenteditable="true" spellcheck="true" data-placeholder="Enter your prompt here..."></div>
-      <div class="api-row">
-        <div class="fg api-url-group">
-          <label class="flabel" for="apiBaseInput">Backend API URL</label>
-          <input class="finput" id="apiBaseInput" placeholder="http://127.0.0.1:8000" type="text" value="http://127.0.0.1:8000">
-        </div>
-        <div class="backend-status checking" id="backendStatus">Checking backend</div>
-      </div>
-      <div class="route-btn-wrap">
-        <button class="route-btn" id="routeButton" onclick="submitPrompt()">
-          Go
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+          <svg class="sidebar-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
       </div>
-    </div>
-    <div class="response-row">
-      <div class="card response-card">
-        <div class="response-header">
-          <span class="lbl">Model Response</span>
-          <span class="success-badge idle" id="responseStatusBadge">Idle</span>
-        </div>
-        <div class="response-body response-empty" id="responseBody">Submit a prompt to see the routed model response here.</div>
-      </div>
-      <div class="route-path-card">
-        <div class="route-path-label">Route Path</div>
-        <div class="route-model" id="routeModel">Awaiting request</div>
-        <div class="route-desc" id="routeDescription">Short prompts route to Mistral Small 24.02. Longer prompts route to Llama 3.1 8B.</div>
-        <div class="latency-row"><span class="key">Latency</span><span class="val" id="latencyValue">—</span></div>
-        <div class="latency-bar"><div class="latency-fill" id="latencyFill" style="width:0%"></div></div>
-        <div class="route-debug">
-          <div class="latency-row"><span class="key">Request ID</span><span class="val" id="requestIdValue">—</span></div>
-          <div class="latency-row"><span class="key">Tokens</span><span class="val" id="tokenValue">—</span></div>
-          <div class="latency-row"><span class="key">Format</span><span class="val" id="requestFormatValue">—</span></div>
-        </div>
-      </div>
-    </div>
-  </main>
-</div>
 
-<!-- ═══ ANALYTICS ═══ -->
-<div class="page" id="page-analytics">
-  <main>
-    <div>
-      <div class="section-label">Live Routing Signals</div>
-      <div class="page-title">Analytics</div>
-    </div>
-    <div class="a-grid2" style="grid-template-columns:1fr">
-      <div class="card efficiency-card">
-        <div class="panel-title">Efficiency Matrix</div>
-        <div class="savings-row"><span class="savings-label">Estimated Savings</span><span class="savings-val">$4,281.00</span></div>
-        <div class="last24">Last 24 Hours</div>
-        <div class="token-row">
-          <div class="token-icon"><svg width="15" height="15" fill="none" stroke="#7c3aed" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
-          <div><div class="token-val">2.4B Tokens</div><div class="token-sub">Processed Throughput</div></div>
-        </div>
-        <div class="token-row">
-          <div class="token-icon"><svg width="15" height="15" fill="none" stroke="#7c3aed" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-          <div><div class="token-val">98.7% Uptime</div><div class="token-sub">Last 30 Days</div></div>
-        </div>
-        <div class="token-row">
-          <div class="token-icon"><svg width="15" height="15" fill="none" stroke="#7c3aed" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-          <div><div class="token-val">38ms Avg Latency</div><div class="token-sub">Across All Nodes</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="a-grid2">
-      <div class="card cluster-card">
-        <div class="panel-title">Cluster Health</div>
-        <div class="cluster-item"><div class="dot green"></div><span class="cluster-name">Llama-3-70b</span><span class="cluster-status">Stable</span></div>
-        <div class="cluster-item"><div class="dot green"></div><span class="cluster-name">Claude-3-Sonnet</span><span class="cluster-status">Stable</span></div>
-        <div class="cluster-item"><div class="dot orange"></div><span class="cluster-name">Mixtral-8×7b</span><span class="cluster-status high">High Latency</span></div>
-        <div class="cluster-item"><div class="dot green"></div><span class="cluster-name">GPT-4o</span><span class="cluster-status">Stable</span></div>
-        <div class="cluster-item"><div class="dot green"></div><span class="cluster-name">Gemini-1.5-Pro</span><span class="cluster-status">Stable</span></div>
-      </div>
-      <div class="card traffic-card">
-        <div class="panel-title">Requests — Last 7 Days</div>
-        <div class="mini-chart">
-          <div class="bar" style="height:42%"></div>
-          <div class="bar" style="height:57%"></div>
-          <div class="bar peak" style="height:80%"></div>
-          <div class="bar" style="height:65%"></div>
-          <div class="bar" style="height:72%"></div>
-          <div class="bar peak" style="height:95%"></div>
-          <div class="bar" style="height:60%"></div>
-        </div>
-        <div class="range-labels"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
-      </div>
-    </div>
-  </main>
-</div>
-
-<!-- ═══ MODELS ═══ -->
-<div class="page" id="page-models">
-  <main>
-    <div>
-      <div class="section-label">Configured Models</div>
-      <div class="page-title">Models</div>
-    </div>
-    <div class="models-grid">
-      <div class="model-card">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="model-icon" style="background:#fff3e0">🌀</div>
-          <div><div class="model-name">Mistral Small 24.02</div><div class="model-provider">Mistral AI via Bedrock</div></div>
-        </div>
-        <div class="mbadge bg">✓ Active</div>
-        <div class="model-stats">
-          <div class="mstat"><strong>Small</strong>Tier</div>
-          <div class="mstat"><strong>32K</strong>Context</div>
-          <div class="mstat"><strong>Low Cost</strong>Route</div>
-        </div>
-        <div class="model-actions"><button class="btn-sm btn-primary">Configure</button><button class="btn-sm btn-outline">Details</button></div>
-      </div>
-
-      <div class="model-card">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="model-icon" style="background:#e0f2fe">🦙</div>
-          <div><div class="model-name">Llama 3.1 8B</div><div class="model-provider">Meta AI via Bedrock</div></div>
-        </div>
-        <div class="mbadge bg">✓ Stable</div>
-        <div class="model-stats">
-          <div class="mstat"><strong>8B</strong>Params</div>
-          <div class="mstat"><strong>128K</strong>Context</div>
-          <div class="mstat"><strong>Higher Quality</strong>Route</div>
-        </div>
-        <div class="model-actions"><button class="btn-sm btn-primary">Configure</button><button class="btn-sm btn-outline">Details</button></div>
-      </div>
-
-      <div class="model-card">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="model-icon" style="background:#dcfce7">🤖</div>
-          <div><div class="model-name">GPT-4o</div><div class="model-provider">OpenAI</div></div>
-        </div>
-        <div class="mbadge bg">✓ Stable</div>
-        <div class="model-stats">
-          <div class="mstat"><strong>—</strong>Params</div>
-          <div class="mstat"><strong>128K</strong>Context</div>
-          <div class="mstat"><strong>~42ms</strong>Speed</div>
-        </div>
-        <div class="model-actions"><button class="btn-sm btn-primary">Configure</button><button class="btn-sm btn-outline">Details</button></div>
-      </div>
-
-      <div class="model-card">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="model-icon" style="background:#f3e8ff">✦</div>
-          <div><div class="model-name">Claude 3 Sonnet</div><div class="model-provider">Anthropic</div></div>
-        </div>
-        <div class="mbadge bg">✓ Stable</div>
-        <div class="model-stats">
-          <div class="mstat"><strong>—</strong>Params</div>
-          <div class="mstat"><strong>200K</strong>Context</div>
-          <div class="mstat"><strong>~39ms</strong>Speed</div>
-        </div>
-        <div class="model-actions"><button class="btn-sm btn-primary">Configure</button><button class="btn-sm btn-outline">Details</button></div>
-      </div>
-
-      <div class="model-card">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="model-icon" style="background:#fef9c3">💎</div>
-          <div><div class="model-name">Gemini 1.5 Pro</div><div class="model-provider">Google DeepMind</div></div>
-        </div>
-        <div class="mbadge bb">⟳ Syncing</div>
-        <div class="model-stats">
-          <div class="mstat"><strong>—</strong>Params</div>
-          <div class="mstat"><strong>1M</strong>Context</div>
-          <div class="mstat"><strong>~55ms</strong>Speed</div>
-        </div>
-        <div class="model-actions"><button class="btn-sm btn-primary">Configure</button><button class="btn-sm btn-outline">Details</button></div>
-      </div>
-
-      <div class="model-card add-card" onclick="document.getElementById('add-modal').classList.add('open')">
-        <div class="add-icon">+</div>
-        <div style="font-size:14px;font-weight:600">Add Model</div>
-        <div style="font-size:12px;text-align:center;max-width:130px">Connect a new model to the router</div>
-      </div>
-    </div>
-  </main>
-</div>
-
-<!-- ═══ HISTORY ═══ -->
-<div class="page" id="page-history">
-  <main>
-    <div>
-      <div class="section-label">Routing Logs</div>
-      <div class="page-title">History</div>
-    </div>
-    <div class="hist-filters">
-      <button class="filter-btn active" onclick="setFilter(this)">All</button>
-      <button class="filter-btn" onclick="setFilter(this)">Success</button>
-      <button class="filter-btn" onclick="setFilter(this)">Failed</button>
-      <input class="search-bar" id="historySearch" placeholder="Search by model, status…" type="text">
-    </div>
-    <div class="card" style="overflow:auto">
-      <table class="history-table">
-        <thead><tr><th>Time</th><th>Prompt Preview</th><th>Route</th><th>Latency</th><th>Tokens</th><th>Status</th></tr></thead>
-        <tbody id="historyTableBody">
-        </tbody>
-      </table>
-    </div>
-  </main>
-</div>
-
-<!-- ═══ GLOBAL SETTINGS ═══ -->
-<div class="page" id="page-settings">
-  <main>
-    <div>
-      <div class="section-label">Configuration</div>
-      <div class="page-title">Global Settings</div>
-    </div>
-    <div class="settings-layout">
-      <div class="card settings-nav" style="padding:16px;align-self:start">
-        <div class="sn-item active" data-sp="general" onclick="showSP('general',this)">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          General
-        </div>
-        <div class="sn-item" data-sp="routing" onclick="showSP('routing',this)">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
-          Routing Rules
-        </div>
-        <div class="sn-item" data-sp="security" onclick="showSP('security',this)">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Security
-        </div>
-        <div class="sn-item" data-sp="notifications" onclick="showSP('notifications',this)">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Notifications
-        </div>
-        <div class="sn-item" data-sp="billing" onclick="showSP('billing',this)">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          Billing
-        </div>
-        <div class="sn-item" data-sp="danger" onclick="showSP('danger',this)" style="color:var(--red);margin-top:8px">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Danger Zone
+      <!-- Operational Context Pill -->
+      <div class="sidebar-context">
+        <span class="context-dot" title="System Status: Normal"></span>
+        <div class="context-info">
+          <span class="context-division">AGC DIVISION</span>
+          <span class="context-sub">NR / AGC-NDLS</span>
         </div>
       </div>
 
-      <div>
-        <!-- General -->
-        <div class="sp active" id="sp-general">
-          <div class="ss">
-            <h3>Organization Details</h3>
-            <div class="form-row">
-              <div class="fg"><label class="flabel">Organization Name</label><input class="finput" value="NeonAI Systems" type="text"></div>
-              <div class="fg"><label class="flabel">Node ID</label><input class="finput" value="Router Node 01" type="text"></div>
+      <!-- Primary Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">PRIMARY NAVIGATION</div>
+        
+        <a class="sidebar-nav-item active" data-route="overview" data-tooltip="Overview">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </span>
+          <span class="nav-label">Overview</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="assets" data-tooltip="Assets & Maintenance">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </span>
+          <span class="nav-label">Assets & Maintenance</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="planning" data-tooltip="Block Planning">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </span>
+          <span class="nav-label">Block Planning</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="schedule" data-tooltip="Block Schedule">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </span>
+          <span class="nav-label">Block Schedule</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="network" data-tooltip="Network & Trains">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 3v12"></path>
+              <path d="M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
+              <path d="M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
+              <path d="M15 6a6 6 0 0 0-6 6v3"></path>
+              <path d="M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"></path>
+            </svg>
+          </span>
+          <span class="nav-label">Network & Trains</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Controller Footer -->
+      <div class="sidebar-footer">
+        <div class="controller-avatar" title="Section Controller">SC</div>
+        <div class="controller-info">
+          <span class="controller-name">Chief Controller</span>
+          <span class="controller-role">AGC-DIV-01</span>
+        </div>
+      </div>
+    </aside>
+
+
+    <!-- ====================================================
+         2. MAIN APPLICATION WRAPPER & TOP HEADER
+    ==================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <div>
+            <div id="header-page-title" class="header-page-title">Operational Overview</div>
+            <div id="header-breadcrumb" class="header-breadcrumb">RailSync / Operational Overview</div>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="ops-status-badge">
+            <span class="status-indicator">
+              <span class="status-dot emerald"></span>
+              <span class="ops-label">NR / AGC-NDLS SECTION</span>
+            </span>
+            <span class="ops-divider"></span>
+            <span class="ops-sync">LAST SYNC: 2026-09-10 22:11 IST</span>
+          </div>
+        </div>
+      </header>
+
+
+      <!-- ====================================================
+           3. MAIN CONTENT AREA & PAGE SHELLS
+      ==================================================== -->
+      <main id="main-content" class="main-content">
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 1: /overview
+        ---------------------------------------------------- -->
+        <div id="view-overview" class="page-view active">
+          
+          <!-- HIERARCHY 1: Safety & Critical Alerts Banner -->
+          <div id="overview-alert-container"></div>
+
+          <!-- Metrics Summary Cards Row -->
+          <div class="metrics-summary-row">
+            <div class="metric-card">
+              <span class="metric-label">Network Availability</span>
+              <span id="metric-network-availability" class="metric-value">-- %</span>
+              <span class="metric-sub"><span class="badge badge-neutral">Telemetry</span> Track Section Health</span>
             </div>
-            <div class="form-row">
-              <div class="fg"><label class="flabel">Region</label><select class="fselect"><option>US-East-1</option><option>EU-West-1</option><option>AP-South-1</option></select></div>
-              <div class="fg"><label class="flabel">Timezone</label><select class="fselect"><option>UTC+0</option><option selected>UTC+5:30 (IST)</option><option>UTC-5 (EST)</option></select></div>
+            <div class="metric-card">
+              <span class="metric-label">Active Maintenance Blocks</span>
+              <span id="metric-active-blocks" class="metric-value">--</span>
+              <span class="metric-sub"><span class="badge badge-info">Planned</span> Active Track Windows</span>
             </div>
-            <div class="form-row">
-              <div class="fg full"><label class="flabel">Default System Prompt</label><input class="finput" value="You are a helpful assistant." type="text"></div>
+            <div class="metric-card">
+              <span class="metric-label">Pending Approvals</span>
+              <span id="metric-pending-approvals" class="metric-value">--</span>
+              <span class="metric-sub"><span class="badge badge-warning">Queue</span> Block Requests</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Train Punctuality Index</span>
+              <span id="metric-punctuality" class="metric-value">-- %</span>
+              <span class="metric-sub"><span class="badge badge-success">On Schedule</span> Main Line Punctuality</span>
             </div>
           </div>
-          <div class="ss">
-            <h3>Display Preferences</h3>
-            <div class="toggle-row"><div><div class="toggle-title">Compact Sidebar</div><div class="toggle-sub">Start with sidebar collapsed by default</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Show Token Counter</div><div class="toggle-sub">Display token usage on every response</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Auto-refresh Dashboard</div><div class="toggle-sub">Refresh live metrics every 30 seconds</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+
+          <!-- Dashboard Overview Grid -->
+          <div class="overview-grid">
+            <div class="overview-col-8">
+              
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      Active Maintenance Blocks
+                    </span>
+                    <span class="card-subtitle">Currently active and scheduled track block windows</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="overview-active-blocks"></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Train & Network Operational State</span>
+                    <span class="card-subtitle">Corridor section health and traffic movement summary</span>
+                  </div>
+                  <span class="badge badge-success">Normal Traffic</span>
+                </div>
+                <div class="card-body">
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
+                      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">CORRIDOR SECTIONS</div>
+                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">AGC — MTJ — NDLS</div>
+                      <div style="font-size: 11px; color: var(--color-success-text); margin-top: 4px;">Double Track Electrified</div>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
+                      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">ACTIVE TRAFFIC DENSITY</div>
+                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">High Density</div>
+                      <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Express & Goods Trains</div>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
+                      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">MAX CORRIDOR SPEED</div>
+                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">130 km/h</div>
+                      <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Normal Speed Signaled</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Maintenance Workload Summary</span>
+                    <span class="card-subtitle">Task distribution across maintenance departments</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">P-WAY (TRACK)</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Permanent Way</div>
+                      <span class="badge badge-neutral">Track & Ballast</span>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">TRD / OHE</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Traction (OHE)</div>
+                      <span class="badge badge-neutral">Power & Lines</span>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">S&T</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Signaling</div>
+                      <span class="badge badge-neutral">Interlocking</span>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">CIVIL / BRIDGE</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Structures</div>
+                      <span class="badge badge-neutral">Bridges & Works</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="overview-col-4">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Pending Approvals</span>
+                    <span class="card-subtitle">Block requests awaiting controller action</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="empty-state">
+                    <div class="empty-state-title">No Pending Requests</div>
+                    <div class="empty-state-desc">Generated block plan requests requiring approval will queue here.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Critical & High Priority Tasks</span>
+                    <span class="card-subtitle">Tasks requiring priority block allocation</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="overview-critical-tasks"></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">AI Recommendation Panel</span>
+                    <span class="card-subtitle">RailSync Intelligent Planner Agent</span>
+                  </div>
+                  <span class="badge badge-success">Engine Ready</span>
+                </div>
+                <div class="card-body">
+                  <div style="padding: 12px; background: var(--color-primary-50); border: 1px solid var(--color-primary-100); border-radius: var(--radius-md); font-size: 12px; color: var(--color-primary-900);">
+                    <strong>Optimization Advice:</strong> Combine P-Way track tamping and TRD overhead line inspection on AGC-MTJ UP line into a single joint block window to minimize total traffic disruption.
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
-          <div class="save-row"><button class="btn-cancel-s">Cancel</button><button class="btn-save">Save Changes</button></div>
+
         </div>
 
-        <!-- Routing -->
-        <div class="sp" id="sp-routing">
-          <div class="ss">
-            <h3>Routing Strategy</h3>
-            <div class="form-row">
-              <div class="fg"><label class="flabel">Default Strategy</label><select class="fselect"><option selected>Auto-Select (Recommended)</option><option>Round Robin</option><option>Least Latency</option><option>Cost Optimized</option></select></div>
-              <div class="fg"><label class="flabel">Fallback Model</label><select class="fselect"><option>GPT-4o</option><option selected>Llama 3 70B</option><option>Claude 3 Sonnet</option></select></div>
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 2: /assets
+        ---------------------------------------------------- -->
+        <div id="view-assets" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Assets & Maintenance Workspace</h2>
+              <span class="section-desc">Unified corridor maintenance tasks, track asset health, and requested work orders.</span>
             </div>
-            <div class="form-row">
-              <div class="fg full">
-                <label class="flabel">Max Latency Threshold (ms): <strong id="lat-val">150</strong></label>
-                <input class="range-input" type="range" min="20" max="500" value="150" oninput="document.getElementById('lat-val').textContent=this.value">
-                <div class="range-labels"><span>20ms</span><span>500ms</span></div>
+            <div class="section-actions">
+              <span id="assets-count-badge" class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">0 Tasks</span>
+            </div>
+          </div>
+
+          <div class="assets-toolbar">
+            <div class="search-input-wrap">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input id="assets-search-input" type="text" class="search-input" placeholder="Search Task ID, Department, Section...">
+            </div>
+
+            <select id="filter-dept" class="filter-select">
+              <option value="">All Departments</option>
+              <option value="P-Way">P-Way (Permanent Way)</option>
+              <option value="TRD">TRD / OHE (Traction)</option>
+              <option value="S&T">S&T (Signaling & Telecom)</option>
+              <option value="Civil">Civil / Bridge</option>
+            </select>
+
+            <select id="filter-corridor" class="filter-select">
+              <option value="">All Corridors</option>
+              <option value="AGC-MTJ">AGC-MTJ (Agra Cantt - Mathura)</option>
+              <option value="MTJ-KSV">MTJ-KSV (Mathura - Kosi Kalan)</option>
+              <option value="KSV-NDLS">KSV-NDLS (Kosi Kalan - New Delhi)</option>
+            </select>
+
+            <select id="filter-severity" class="filter-select">
+              <option value="">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+
+            <select id="filter-priority" class="filter-select">
+              <option value="">All Priorities</option>
+              <option value="high">High Priority (≥ 75)</option>
+              <option value="medium">Medium Priority (40-74)</option>
+              <option value="low">Low Priority (&lt; 40)</option>
+            </select>
+
+            <select id="filter-status" class="filter-select">
+              <option value="">All Statuses</option>
+              <option value="Unassigned">Unassigned</option>
+              <option value="Pending Approval">Pending Approval</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Approved">Approved</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th class="th-sortable" data-sort-field="id">Task ID <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="department">Department <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="corridor">Corridor <span class="sort-icon">↕</span></th>
+                  <th>Description</th>
+                  <th class="th-sortable" data-sort-field="severity">Severity <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="duration">Duration <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="maintenance_age">Age <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="priority_score">Priority <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="status">Status <span class="sort-icon">↕</span></th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="assets-table-body"></tbody>
+            </table>
+          </div>
+
+        </div>
+
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 3: /planning
+        ---------------------------------------------------- -->
+        <div id="view-planning" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Automatic Block Planning Workspace</h2>
+              <span class="section-desc">Synthesize and optimize non-overlapping maintenance block schedules against synthetic corridor train occupancy constraints.</span>
+            </div>
+          </div>
+
+          <div class="planning-controls-bar">
+            <div class="planning-group">
+              <span class="planning-label">Section:</span>
+              <select class="filter-select">
+                <option value="AGC-NDLS">Agra Cantt - New Delhi (AGC-NDLS Main Line)</option>
+              </select>
+
+              <span class="planning-label" style="margin-left: 12px;">Time Window:</span>
+              <select class="filter-select">
+                <option value="24h">Next 24 Hours (Operational Day)</option>
+              </select>
+            </div>
+
+            <div>
+              <button id="btn-generate-plan" class="btn btn-primary btn-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                Generate Block Plan
+              </button>
+            </div>
+          </div>
+
+          <div id="planning-progress-area" style="display: none;"></div>
+
+          <div class="planning-workspace">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Task Selection & Review</span>
+                  <span class="card-subtitle">Select maintenance tasks to include in planning run</span>
+                </div>
+                <button id="btn-select-all-tasks" class="btn btn-secondary btn-sm">Select All Tasks</button>
+              </div>
+              <div class="card-body">
+                <div id="planning-task-selection-list" class="summary-list"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Plan Generation Result</span>
+                  <span class="card-subtitle">Optimizer feasibility and scheduled block summary</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="planning-result-summary"></div>
               </div>
             </div>
           </div>
-          <div class="ss">
-            <h3>Traffic Controls</h3>
-            <div class="toggle-row"><div><div class="toggle-title">Rate Limiting</div><div class="toggle-sub">Cap requests to 1,000/min per node</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Automatic Failover</div><div class="toggle-sub">Re-route on node failure automatically</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Cost Cap Enforcement</div><div class="toggle-sub">Block routing if estimated cost exceeds budget</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
-          </div>
-          <div class="save-row"><button class="btn-cancel-s">Cancel</button><button class="btn-save">Save Changes</button></div>
+
         </div>
 
-        <!-- Security -->
-        <div class="sp" id="sp-security">
-          <div class="ss">
-            <h3>Access Control</h3>
-            <div class="form-row">
-              <div class="fg"><label class="flabel">Session Timeout (min)</label><input class="finput" value="60" type="number"></div>
-              <div class="fg"><label class="flabel">Max Login Attempts</label><input class="finput" value="5" type="number"></div>
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 4: /schedule
+        ---------------------------------------------------- -->
+        <div id="view-schedule" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Block Schedule & Corridor Gantt Timeline</h2>
+              <span class="section-desc">Interactive Gantt visualization demonstrating train occupancy vs maintenance block constraints.</span>
             </div>
-            <div class="toggle-row"><div><div class="toggle-title">Two-Factor Authentication</div><div class="toggle-sub">Require 2FA for all admin logins</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">IP Allowlist</div><div class="toggle-sub">Restrict access to approved IP ranges only</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Audit Logging</div><div class="toggle-sub">Log all admin actions to secure storage</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
           </div>
-          <div class="save-row"><button class="btn-cancel-s">Cancel</button><button class="btn-save">Save Changes</button></div>
+
+          <div id="schedule-approval-area"></div>
+
+          <div class="constraint-bundling-card">
+            <div class="bundling-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Constraint Bundling & Sequencing Logic (Corridor Capacity = 1)
+            </div>
+            <div class="bundling-note">
+              <strong>Corridor Capacity Rule:</strong> The solver enforces strict track capacity = 1. Maintenance tasks are <strong>coordinated sequentially</strong> within the same train-free window opportunity rather than overlapping on the same track segment.
+            </div>
+          </div>
+
+          <div id="gantt-viewport-area"></div>
+
         </div>
 
-        <!-- Notifications -->
-        <div class="sp" id="sp-notifications">
-          <div class="ss">
-            <h3>Alert Channels</h3>
-            <div class="form-row">
-              <div class="fg full"><label class="flabel">Alert Email</label><input class="finput" value="admin@neonai.systems" type="email"></div>
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 5: /network
+        ---------------------------------------------------- -->
+        <div id="view-network" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Network & Train Operations</h2>
+              <span class="section-desc">Corridor schematic topology, station nodes, synthetic train positions, and block section indicators.</span>
             </div>
-            <div class="form-row">
-              <div class="fg full"><label class="flabel">Slack Webhook URL</label><input class="finput" placeholder="https://hooks.slack.com/…" type="text"></div>
-            </div>
-            <div class="toggle-row"><div><div class="toggle-title">High Latency Alerts</div><div class="toggle-sub">Notify when node latency exceeds threshold</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Node Down Alerts</div><div class="toggle-sub">Immediate alert on node failure</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Weekly Summary Email</div><div class="toggle-sub">Receive a usage summary every Monday</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
           </div>
-          <div class="save-row"><button class="btn-cancel-s">Cancel</button><button class="btn-save">Save Changes</button></div>
+
+          <div class="network-layout">
+            
+            <!-- Left Column: Railway Corridor Schematic Workspace -->
+            <div class="schematic-viewport">
+              <div class="schematic-header">
+                <div class="planning-group">
+                  <span class="planning-label">Section Schematic:</span>
+                  <select class="filter-select">
+                    <option value="AGC-NDLS">AGC (Agra Cantt) — MTJ (Mathura) — NDLS (New Delhi)</option>
+                  </select>
+                </div>
+                <span class="badge badge-neutral">Synthetic Timetable Data</span>
+              </div>
+
+              <!-- Canvas Renderer for 6 Stations, 4 Corridors, 7 Trains -->
+              <div id="network-schematic-canvas" class="schematic-canvas"></div>
+            </div>
+
+            <!-- Right Column: Side Information Panel Inspector -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Corridor Element Inspector</span>
+                  <span class="card-subtitle">Details of selected station, train, or track segment</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="network-inspector-panel"></div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
 
-        <!-- Billing -->
-        <div class="sp" id="sp-billing">
-          <div class="ss">
-            <h3>Plan & Usage</h3>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:15px;font-weight:700;color:var(--text-dark)">Pro Plan</div><div style="font-size:12px;color:var(--text-mid)">24 active nodes · Unlimited requests</div></div>
-              <button class="btn-sm btn-primary">Upgrade</button>
-            </div>
-            <div class="form-row" style="margin-top:16px">
-              <div class="fg"><label class="flabel">Monthly Budget Cap ($)</label><input class="finput" value="5000" type="number"></div>
-              <div class="fg"><label class="flabel">Billing Email</label><input class="finput" value="billing@neonai.systems" type="email"></div>
-            </div>
-            <div class="toggle-row"><div><div class="toggle-title">Auto-Renew</div><div class="toggle-sub">Automatically renew subscription on expiry</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-          </div>
-          <div class="save-row"><button class="btn-cancel-s">Cancel</button><button class="btn-save">Save Changes</button></div>
-        </div>
+      </main>
+    </div>
 
-        <!-- Danger Zone -->
-        <div class="sp" id="sp-danger">
-          <div class="ss dz">
-            <h3>⚠ Danger Zone</h3>
-            <div class="toggle-row"><div><div class="toggle-title">Reset All Routing Rules</div><div class="toggle-sub">Revert routing configuration to factory defaults</div></div><button class="dbtn">Reset</button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Flush Routing Cache</div><div class="toggle-sub">Clear all cached routing decisions immediately</div></div><button class="dbtn">Flush</button></div>
-            <div class="toggle-row"><div><div class="toggle-title">Revoke All API Keys</div><div class="toggle-sub">Instantly invalidate every issued API key</div></div><button class="dbtn">Revoke All</button></div>
-            <div class="toggle-row" style="border-bottom:none"><div><div class="toggle-title" style="color:var(--red)">Delete Organization</div><div class="toggle-sub">Permanently delete all data. This cannot be undone.</div></div><button class="dbtn" style="background:var(--red);color:#fff;border-color:var(--red)">Delete</button></div>
-          </div>
-        </div>
+  </div>
+
+
+  <!-- ====================================================
+       4. REUSABLE DRAWER SYSTEM (TASK DETAIL DRAWER)
+  ==================================================== -->
+  <div id="task-drawer-backdrop" class="drawer-backdrop">
+    <div class="drawer">
+      <div class="drawer-header">
+        <span id="task-drawer-title" class="drawer-title">Maintenance Task Details</span>
+        <button class="btn btn-ghost btn-sm" data-dismiss="drawer" title="Close Drawer">&times;</button>
+      </div>
+      
+      <div id="task-drawer-body-content" class="drawer-body"></div>
+
+      <div class="drawer-footer">
+        <button class="btn btn-secondary" data-dismiss="drawer">Close</button>
+        <button class="btn btn-primary" onclick="alert('Task selected for block planning synthesis.')">Include in Plan</button>
       </div>
     </div>
-  </main>
-</div>
-
-</div><!-- end .layout -->
-
-<!-- ADD MODEL MODAL -->
-<div class="modal-overlay" id="add-modal" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal">
-    <h3>Add New Model</h3>
-    <div class="fg"><label class="flabel">Model Name</label><input class="finput" style="width:100%" placeholder="e.g. DeepSeek-R1" type="text"></div>
-    <div class="fg"><label class="flabel">Provider</label><select class="fselect"><option>OpenAI</option><option>Anthropic</option><option>Meta AI</option><option>Mistral AI</option><option>Google</option><option>Custom</option></select></div>
-    <div class="fg"><label class="flabel">API Endpoint</label><input class="finput" style="width:100%" placeholder="https://api.example.com/v1" type="text"></div>
-    <div class="fg"><label class="flabel">API Key</label><input class="finput" style="width:100%" placeholder="sk-…" type="password"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel-s" onclick="document.getElementById('add-modal').classList.remove('open')">Cancel</button>
-      <button class="btn-save" onclick="document.getElementById('add-modal').classList.remove('open')">Add Model</button>
-    </div>
   </div>
-</div>
 
-<script>
-const STORAGE_KEYS = {
-  apiBase: 'dispatch.apiBase',
-  history: 'dispatch.history',
-};
-const DEFAULT_API_BASE = (() => {
-  const params = new URLSearchParams(window.location.search);
-  const queryValue = params.get('apiBase');
-  if (queryValue) return queryValue.replace(/\/$/, '');
-  if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-    return window.location.origin.replace(/\/$/, '');
-  }
-  return 'http://127.0.0.1:8000';
-})();
 
-let activeFilter = 'All';
-let historyEntries = loadHistory();
-
-function showPage(name, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + name)?.classList.add('active');
-  if (el) {
-    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-    el.classList.add('active');
-  }
-}
-function setSB(id) {
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-  document.getElementById(id)?.classList.add('active');
-}
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('collapsed');
-}
-function setFilter(button) {
-  activeFilter = button.textContent.trim();
-  document.querySelectorAll('.filter-btn').forEach(item => item.classList.remove('active'));
-  button.classList.add('active');
-  renderHistory();
-}
-function showSP(name, el) {
-  document.querySelectorAll('.sp').forEach(p => p.classList.remove('active'));
-  document.getElementById('sp-' + name)?.classList.add('active');
-  document.querySelectorAll('.sn-item').forEach(i => i.classList.remove('active'));
-  el.classList.add('active');
-}
-function toggleSettingsMenu() {
-  document.getElementById('settingsDropdown').classList.toggle('open');
-}
-function openSettings(section) {
-  document.getElementById('settingsDropdown').classList.remove('open');
-  showPage('settings', null);
-  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
-  const el = document.querySelector('.sn-item[data-sp="' + section + '"]');
-  if (el) showSP(section, el);
-}
-document.addEventListener('click', function(e) {
-  const wrap = document.getElementById('settingsWrap');
-  if (wrap && !wrap.contains(e.target)) {
-    document.getElementById('settingsDropdown').classList.remove('open');
-  }
-});
-
-function loadHistory() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEYS.history);
-    return saved ? JSON.parse(saved) : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveHistory() {
-  localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(historyEntries.slice(0, 25)));
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function formatApiBase(value) {
-  return (value || '').trim().replace(/\/$/, '');
-}
-
-function getApiBase() {
-  const input = document.getElementById('apiBaseInput');
-  return formatApiBase(input?.value) || DEFAULT_API_BASE;
-}
-
-function persistApiBase() {
-  const formatted = getApiBase();
-  const input = document.getElementById('apiBaseInput');
-  if (input) input.value = formatted;
-  localStorage.setItem(STORAGE_KEYS.apiBase, formatted);
-  return formatted;
-}
-
-function updatePromptPlaceholder() {
-  const promptEl = document.getElementById('promptInput');
-  if (!promptEl) return;
-  promptEl.classList.toggle('is-empty', !promptEl.textContent.trim());
-}
-
-function setBackendStatus(state, label) {
-  const badge = document.getElementById('backendStatus');
-  if (!badge) return;
-  badge.className = 'backend-status';
-  if (state === 'offline') badge.classList.add('offline');
-  if (state === 'checking') badge.classList.add('checking');
-  badge.textContent = label;
-}
-
-function setResponseStatus(state, label) {
-  const badge = document.getElementById('responseStatusBadge');
-  if (!badge) return;
-  badge.className = 'success-badge';
-  if (state) badge.classList.add(state);
-  badge.textContent = label;
-}
-
-function setResponseBody(text, isError = false) {
-  const body = document.getElementById('responseBody');
-  if (!body) return;
-  body.textContent = text;
-  body.classList.toggle('response-empty', !text);
-  body.classList.toggle('error', isError);
-}
-
-function formatTokenSummary(debug) {
-  const promptTokens = debug?.prompt_token_count;
-  const generationTokens = debug?.generation_token_count;
-  if (promptTokens == null && generationTokens == null) return '—';
-  return `${promptTokens ?? '—'} in / ${generationTokens ?? '—'} out`;
-}
-
-function updateRouteCard(result, latencyMs) {
-  const debug = result?.debug || {};
-  const latency = Number.isFinite(latencyMs) ? `${latencyMs}ms` : '—';
-  const fillWidth = Number.isFinite(latencyMs)
-    ? `${Math.max(10, Math.min(100, Math.round((latencyMs / 600) * 100)))}%`
-    : '0%';
-
-  document.getElementById('routeModel').textContent = debug.invoked_model_id || result?.model_used || '—';
-  document.getElementById('routeDescription').textContent =
-    debug.routing_reason || 'Short prompts route to Mistral Small 24.02. Longer prompts route to Llama 3.1 8B.';
-  document.getElementById('latencyValue').textContent = latency;
-  document.getElementById('latencyFill').style.width = fillWidth;
-  document.getElementById('requestIdValue').textContent = debug.request_id || '—';
-  document.getElementById('tokenValue').textContent = formatTokenSummary(debug);
-  document.getElementById('requestFormatValue').textContent = debug.request_format || '—';
-}
-
-function addHistoryEntry(entry) {
-  historyEntries.unshift(entry);
-  historyEntries = historyEntries.slice(0, 25);
-  saveHistory();
-  renderHistory();
-}
-
-function renderHistory() {
-  const tbody = document.getElementById('historyTableBody');
-  if (!tbody) return;
-
-  const searchTerm = document.getElementById('historySearch')?.value.trim().toLowerCase() || '';
-  const filtered = historyEntries.filter(entry => {
-    const matchesFilter = activeFilter === 'All' || entry.status === activeFilter;
-    const haystack = [entry.prompt, entry.route, entry.status].join(' ').toLowerCase();
-    const matchesSearch = !searchTerm || haystack.includes(searchTerm);
-    return matchesFilter && matchesSearch;
-  });
-
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr class="history-empty"><td colspan="6">No routed requests yet.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(entry => `
-    <tr>
-      <td>${escapeHtml(entry.time)}</td>
-      <td>${escapeHtml(entry.prompt)}</td>
-      <td><span class="mpill">${escapeHtml(entry.route)}</span></td>
-      <td>${escapeHtml(entry.latency)}</td>
-      <td>${escapeHtml(entry.tokens)}</td>
-      <td><span class="${entry.status === 'Success' ? 'tag tag-s' : 'tag tag-w'}">${escapeHtml(entry.status)}</span></td>
-    </tr>
-  `).join('');
-}
-
-async function checkBackendHealth() {
-  const apiBase = persistApiBase();
-  setBackendStatus('checking', 'Checking backend');
-
-  try {
-    const response = await fetch(`${apiBase}/`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error(`Health check failed with ${response.status}`);
-
-    const data = await response.json();
-    setBackendStatus('', data.status === 'Backend running' ? 'Backend online' : 'Backend reachable');
-  } catch (error) {
-    setBackendStatus('offline', 'Backend offline');
-  }
-}
-
-async function submitPrompt() {
-  const prompt = document.getElementById('promptInput')?.textContent.trim() || '';
-  const button = document.getElementById('routeButton');
-
-  if (!prompt) {
-    setResponseStatus('error', 'Prompt required');
-    setResponseBody('Enter a prompt before sending the request.', true);
-    return;
-  }
-
-  const apiBase = persistApiBase();
-  const startedAt = performance.now();
-
-  button.disabled = true;
-  setResponseStatus('loading', 'Routing...');
-  setResponseBody('Sending prompt to the backend router...');
-  updateRouteCard(
-    {
-      model_used: 'Routing...',
-      debug: {
-        routing_reason: 'The backend is evaluating the prompt and selecting the best model.',
-        request_format: 'pending',
-      },
-    },
-    NaN,
-  );
-
-  try {
-    const response = await fetch(`${apiBase}/ask`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({ prompt }),
-    });
-
-    const result = await response.json().catch(() => ({
-      ok: false,
-      error: `Backend returned ${response.status} without JSON.`,
-      debug: {},
-    }));
-
-    const latencyMs = Math.round(performance.now() - startedAt);
-    updateRouteCard(result, latencyMs);
-
-    if (!response.ok || !result.ok) {
-      const errorText = result.debug?.exception || result.error || `Request failed with status ${response.status}.`;
-      setResponseStatus('error', 'Request failed');
-      setResponseBody(errorText, true);
-      setBackendStatus('checking', 'Backend returned error');
-      addHistoryEntry({
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        prompt: prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt,
-        route: result.model_used || '—',
-        latency: `${latencyMs}ms`,
-        tokens: formatTokenSummary(result.debug),
-        status: 'Failed',
-      });
-      return;
-    }
-
-    setBackendStatus('', 'Backend online');
-    setResponseStatus('', 'Success');
-    setResponseBody(result.response || 'No response text returned.');
-    addHistoryEntry({
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      prompt: prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt,
-      route: result.model_used || '—',
-      latency: `${latencyMs}ms`,
-      tokens: formatTokenSummary(result.debug),
-      status: 'Success',
-    });
-  } catch (error) {
-    const latencyMs = Math.round(performance.now() - startedAt);
-    setBackendStatus('offline', 'Backend offline');
-    setResponseStatus('error', 'Connection error');
-    setResponseBody(error.message || 'Unable to reach the backend.', true);
-    updateRouteCard(
-      {
-        model_used: 'Unavailable',
-        debug: {
-          routing_reason: 'The frontend could not connect to the FastAPI backend.',
-          request_format: 'unavailable',
-        },
-      },
-      latencyMs,
-    );
-    addHistoryEntry({
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      prompt: prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt,
-      route: 'Unavailable',
-      latency: `${latencyMs}ms`,
-      tokens: '—',
-      status: 'Failed',
-    });
-  } finally {
-    button.disabled = false;
-  }
-}
-
-function initializeApp() {
-  const savedApiBase = formatApiBase(localStorage.getItem(STORAGE_KEYS.apiBase)) || DEFAULT_API_BASE;
-  const apiInput = document.getElementById('apiBaseInput');
-  if (apiInput) {
-    apiInput.value = savedApiBase;
-    apiInput.addEventListener('change', checkBackendHealth);
-    apiInput.addEventListener('blur', checkBackendHealth);
-    apiInput.addEventListener('keydown', event => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        checkBackendHealth();
-      }
-    });
-  }
-
-  const promptEl = document.getElementById('promptInput');
-  if (promptEl) {
-    promptEl.addEventListener('input', updatePromptPlaceholder);
-    promptEl.addEventListener('keydown', event => {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-        event.preventDefault();
-        submitPrompt();
-      }
-    });
-  }
-
-  const historySearch = document.getElementById('historySearch');
-  if (historySearch) {
-    historySearch.addEventListener('input', renderHistory);
-  }
-
-  updatePromptPlaceholder();
-  renderHistory();
-  checkBackendHealth();
-}
-
-window.addEventListener('DOMContentLoaded', initializeApp);
-</script>
+  <!-- JavaScript Application Files -->
+  <script src="js/api.js"></script>
+  <script src="js/taskManager.js"></script>
+  <script src="js/planManager.js"></script>
+  <script src="js/networkManager.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
