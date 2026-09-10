@@ -1,0 +1,80 @@
+[
+  {
+    "task_id": "TASK-007",
+    "source_system": "SMMS",
+    "work_type": "signal_inspection",
+    "corridor_id": "C1",
+    "department": "Signal & Telecom",
+    "description": "Home-signal inspection and lamp test",
+    "severity": 4,
+    "estimated_duration_min": 60,
+    "last_maintenance_date": "2026-06-12",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-008",
+    "source_system": "SMMS",
+    "work_type": "point_machine",
+    "corridor_id": "C2",
+    "department": "Signal & Telecom",
+    "description": "Point-machine clutch and detection check",
+    "severity": 4,
+    "estimated_duration_min": 45,
+    "last_maintenance_date": "2026-07-15",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-009",
+    "source_system": "SMMS",
+    "work_type": "signal_fault",
+    "corridor_id": "C3",
+    "department": "Signal & Telecom",
+    "description": "Axle-counter reset investigation",
+    "severity": 5,
+    "estimated_duration_min": 30,
+    "last_maintenance_date": "2026-04-18",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-010",
+    "source_system": "SMMS",
+    "work_type": "cable_insulation",
+    "corridor_id": "C4",
+    "department": "Signal & Telecom",
+    "description": "Signalling cable insulation test",
+    "severity": 3,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-07-01",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-011",
+    "source_system": "SMMS",
+    "work_type": "relay_room",
+    "corridor_id": "C2",
+    "department": "Signal & Telecom",
+    "description": "Relay-room battery and alarm check",
+    "severity": 4,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-07-15",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-012",
+    "source_system": "SMMS",
+    "work_type": "track_circuit",
+    "corridor_id": "C3",
+    "department": "Signal & Telecom",
+    "description": "Track-circuit cable insulation test",
+    "severity": 3,
+    "estimated_duration_min": 60,
+    "last_maintenance_date": "2026-06-01",
+    "priority_score": 0,
+    "status": "pending"
+  }
+]

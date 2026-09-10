@@ -1,0 +1,9 @@
+[
+  {"train_id": "TR01", "route": ["S1", "S2", "S3"]},
+  {"train_id": "TR02", "route": ["S3", "S2", "S1"]},
+  {"train_id": "TR03", "route": ["S1", "S2", "S4", "S6"]},
+  {"train_id": "TR04", "route": ["S6", "S4", "S2", "S3"]},
+  {"train_id": "TR05", "route": ["S5", "S2", "S3"]},
+  {"train_id": "TR06", "route": ["S3", "S2", "S5"]},
+  {"train_id": "TR07", "route": ["S1", "S2", "S4"]}
+]

@@ -103,3 +103,47 @@ class SolverTests(unittest.TestCase):
             }],
         )
         self.assertEqual(result["unscheduled_task_ids"], ["TOO-LONG"])
+
+    def test_task_must_fit_inside_a_single_free_window(self):
+        result = solve(
+            [_task("SPAN", 90, 100)],
+            {"C1": 1},
+            [
+                _window("2026-09-09T01:00:00Z", "2026-09-09T02:00:00Z"),
+                _window("2026-09-09T02:30:00Z", "2026-09-09T03:30:00Z"),
+            ],
+        )
+
+        self.assertEqual(result["schedule"], [])
+        self.assertEqual(result["unscheduled_task_ids"], ["SPAN"])
+        self.assertEqual(result["status"], "feasible")
+
+    def test_multiple_windows_schedule_without_occupying_the_gap(self):
+        occupied_start = "2026-09-09T02:00:00Z"
+        occupied_end = "2026-09-09T03:00:00Z"
+        result = solve(
+            [_task("TASK-A", 60, 90), _task("TASK-B", 60, 80)],
+            {"C1": 1},
+            [
+                _window("2026-09-09T01:00:00Z", occupied_start),
+                _window(occupied_end, "2026-09-09T05:00:00Z"),
+            ],
+        )
+
+        self.assertEqual(len(result["schedule"]), 2)
+        occupied_start_at = _minutes(occupied_start)
+        occupied_end_at = _minutes(occupied_end)
+        for block in result["schedule"]:
+            start = _minutes(block["block_start"])
+            end = _minutes(block["block_end"])
+            self.assertFalse(start < occupied_end_at and end > occupied_start_at)
+
+    def test_priority_still_selects_the_task_that_fits_a_short_window(self):
+        result = solve(
+            [_task("LOW", 30, 20), _task("HIGH", 30, 90), _task("LONG", 90, 100)],
+            {"C1": 1},
+            [_window("2026-09-09T01:00:00Z", "2026-09-09T01:30:00Z")],
+        )
+
+        self.assertEqual([block["task_id"] for block in result["schedule"]], ["HIGH"])
+        self.assertEqual(set(result["unscheduled_task_ids"]), {"LOW", "LONG"})

@@ -1,0 +1,80 @@
+[
+  {
+    "task_id": "TASK-001",
+    "source_system": "TMS",
+    "work_type": "rail_defect",
+    "corridor_id": "C1",
+    "department": "Engineering",
+    "description": "Rail defect ultrasonic inspection",
+    "severity": 5,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-05-20",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-002",
+    "source_system": "TMS",
+    "work_type": "track_geometry",
+    "corridor_id": "C1",
+    "department": "Track Maintenance",
+    "description": "Track geometry tamping survey",
+    "severity": 3,
+    "estimated_duration_min": 45,
+    "last_maintenance_date": "2026-08-20",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-003",
+    "source_system": "TMS",
+    "work_type": "sleeper_replacement",
+    "corridor_id": "C2",
+    "department": "Engineering",
+    "description": "Sleeper replacement at turnout approach",
+    "severity": 4,
+    "estimated_duration_min": 60,
+    "last_maintenance_date": "2026-06-12",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-004",
+    "source_system": "TMS",
+    "work_type": "rail_inspection",
+    "corridor_id": "C3",
+    "department": "Engineering",
+    "description": "Continuous welded-rail inspection and grind",
+    "severity": 5,
+    "estimated_duration_min": 120,
+    "last_maintenance_date": "2026-03-01",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-005",
+    "source_system": "TMS",
+    "work_type": "ballast_rectification",
+    "corridor_id": "C4",
+    "department": "Track Maintenance",
+    "description": "Ballast deficiency rectification",
+    "severity": 2,
+    "estimated_duration_min": 75,
+    "last_maintenance_date": "2026-08-05",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-006",
+    "source_system": "TMS",
+    "work_type": "rail_replacement",
+    "corridor_id": "C1",
+    "department": "Engineering",
+    "description": "Emergency rail replacement block",
+    "severity": 5,
+    "estimated_duration_min": 150,
+    "last_maintenance_date": "2026-03-01",
+    "priority_score": 0,
+    "status": "pending"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "corridor_id": "C1",
+    "station_ids": ["S1", "S2", "S3"],
+    "capacity": 1
+  },
+  {
+    "corridor_id": "C2",
+    "station_ids": ["S2", "S4"],
+    "capacity": 1
+  },
+  {
+    "corridor_id": "C3",
+    "station_ids": ["S2", "S5"],
+    "capacity": 1
+  },
+  {
+    "corridor_id": "C4",
+    "station_ids": ["S4", "S6"],
+    "capacity": 1
+  }
+]

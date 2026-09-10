@@ -6,6 +6,12 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 import backend.main as backend_main
+from backend.ingest import unified_maintenance_tasks
+from backend.timetable import (
+    block_inside_free_windows,
+    timetable_windows_from_movements,
+    train_conflicts,
+)
 
 
 class BackendApiTests(unittest.TestCase):
@@ -164,6 +170,39 @@ class BackendApiTests(unittest.TestCase):
         current = self.client.get("/plan/current")
         self.assertEqual(current.status_code, 200)
         self.assertEqual(current.json()["schedule_id"], generated["schedule_id"])
+
+    def test_tasks_include_normalized_records_from_all_three_systems(self):
+        response = self.client.get("/tasks")
+        task_ids = {task["task_id"] for task in response.json()}
+        expected_ids = {task["task_id"] for task in unified_maintenance_tasks()}
+        self.assertEqual(len(response.json()), 18)
+        self.assertEqual(task_ids, expected_ids)
+        self.assertTrue({"TASK-001", "TASK-007", "TASK-013"}.issubset(task_ids))
+
+    def test_generated_plan_is_train_conflict_free_and_inside_free_windows(self):
+        plan = self.client.post("/plan/generate").json()
+        windows = timetable_windows_from_movements()
+        self.assertEqual(train_conflicts(plan["schedule"]), [])
+        self.assertTrue(plan["schedule"])
+        for block in plan["schedule"]:
+            self.assertTrue(block_inside_free_windows(block, windows))
+
+    def test_disruption_reoptimizes_without_train_conflicts(self):
+        first = self.client.post("/plan/generate").json()
+        disruption = self.client.post(
+            "/disrupt",
+            json={"task_id": "TASK-001", "reason": "Block overrun"},
+        ).json()
+        current = self.client.get("/plan/current").json()
+        windows = timetable_windows_from_movements()
+
+        self.assertNotEqual(disruption["schedule_id"], first["schedule_id"])
+        self.assertEqual(train_conflicts(current["schedule"]), [])
+        for block in current["schedule"]:
+            self.assertTrue(block_inside_free_windows(block, windows))
+        self.assertNotIn(
+            "TASK-001", {block["task_id"] for block in current["schedule"]}
+        )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,8 @@
+[
+  {"station_id": "S1", "name": "Central Junction"},
+  {"station_id": "S2", "name": "North Junction"},
+  {"station_id": "S3", "name": "East Terminal"},
+  {"station_id": "S4", "name": "South Junction"},
+  {"station_id": "S5", "name": "West Terminal"},
+  {"station_id": "S6", "name": "South Terminal"}
+]

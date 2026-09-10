@@ -1,0 +1,80 @@
+[
+  {
+    "task_id": "TASK-013",
+    "source_system": "TDMS",
+    "work_type": "ohe_inspection",
+    "corridor_id": "C1",
+    "department": "Electrical",
+    "description": "OHE contact-wire inspection",
+    "severity": 4,
+    "estimated_duration_min": 75,
+    "last_maintenance_date": "2026-04-01",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-014",
+    "source_system": "TDMS",
+    "work_type": "traction_return",
+    "corridor_id": "C2",
+    "department": "Electrical",
+    "description": "Traction return-current bond inspection",
+    "severity": 3,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-06-15",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-015",
+    "source_system": "TDMS",
+    "work_type": "ohe_fault",
+    "corridor_id": "C3",
+    "department": "Electrical",
+    "description": "Overhead-equipment fault isolation",
+    "severity": 5,
+    "estimated_duration_min": 90,
+    "last_maintenance_date": "2026-04-15",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-016",
+    "source_system": "TDMS",
+    "work_type": "feeder_thermography",
+    "corridor_id": "C4",
+    "department": "Electrical",
+    "description": "Substation feeder thermography",
+    "severity": 3,
+    "estimated_duration_min": 45,
+    "last_maintenance_date": "2026-06-15",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-017",
+    "source_system": "TDMS",
+    "work_type": "insulator_cleaning",
+    "corridor_id": "C2",
+    "department": "Electrical",
+    "description": "OHE insulator cleaning",
+    "severity": 2,
+    "estimated_duration_min": 30,
+    "last_maintenance_date": "2026-08-20",
+    "priority_score": 0,
+    "status": "pending"
+  },
+  {
+    "task_id": "TASK-018",
+    "source_system": "TDMS",
+    "work_type": "electrical_isolation",
+    "corridor_id": "C4",
+    "department": "Electrical",
+    "description": "Electrical isolation for mast replacement",
+    "severity": 4,
+    "estimated_duration_min": 60,
+    "last_maintenance_date": "2026-05-15",
+    "priority_score": 0,
+    "status": "pending"
+  }
+]

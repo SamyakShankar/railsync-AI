@@ -14,24 +14,16 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from backend.ingest import unified_maintenance_tasks
+from backend.timetable import corridor_capacity_map, timetable_windows_from_movements
 from optimizer.solver import solve
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DATABASE_PATH = ROOT_DIR / "backend" / "railsync.db"
 DATABASE_PATH = Path(os.getenv("RAILSYNC_DATABASE_PATH", DEFAULT_DATABASE_PATH))
-SAMPLE_DATA_PATH = ROOT_DIR / "data" / "sample_data.json"
 PLANNING_DATE = date(2026, 9, 9)
-CORRIDOR_TRAFFIC = {"C1": 1.0, "C2": 0.8, "C3": 0.6}
-CORRIDOR_CAPACITY = {corridor_id: 1 for corridor_id in CORRIDOR_TRAFFIC}
-TIMETABLE_WINDOWS = [
-    {
-        "corridor_id": corridor_id,
-        "window_start": "2026-09-09T01:00:00Z",
-        "window_end": "2026-09-09T08:00:00Z",
-    }
-    for corridor_id in CORRIDOR_TRAFFIC
-]
+CORRIDOR_TRAFFIC = {"C1": 1.0, "C2": 0.8, "C3": 0.6, "C4": 0.5}
 
 
 class ApprovePlanRequest(BaseModel):
@@ -100,8 +92,6 @@ def _connect_and_initialize() -> None:
         )
         task_count = connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
         if task_count == 0:
-            with SAMPLE_DATA_PATH.open(encoding="utf-8") as sample_file:
-                sample_tasks = json.load(sample_file)
             connection.executemany(
                 """
                 INSERT INTO tasks (
@@ -118,7 +108,7 @@ def _connect_and_initialize() -> None:
                         task["last_maintenance_date"],
                         task.get("priority_score", 0.0), task["status"],
                     )
-                    for task in sample_tasks
+                    for task in unified_maintenance_tasks()
                 ],
             )
 
@@ -232,11 +222,16 @@ def _error(status_code: int, error: str, detail: str) -> JSONResponse:
     return JSONResponse(status_code=status_code, content={"error": error, "detail": detail})
 
 
+def _planning_inputs() -> tuple[dict[str, int], list[dict[str, str]]]:
+    return corridor_capacity_map(), timetable_windows_from_movements()
+
+
 def _generate_for_tasks(connection: sqlite3.Connection, tasks: list[sqlite3.Row]) -> dict[str, Any]:
+    corridor_capacity, timetable_windows = _planning_inputs()
     result = solve(
         [_task_dict(task) for task in tasks],
-        CORRIDOR_CAPACITY,
-        TIMETABLE_WINDOWS,
+        corridor_capacity,
+        timetable_windows,
     )
     return _persist_schedule(connection, result)
 
