@@ -1,0 +1,855 @@
+/* RailSync AI - Page Specific Shell Layouts, Network Schematic & Polish */
+
+/* ----------------------------------------------------
+   1. OVERVIEW DASHBOARD REFINED LAYOUT
+---------------------------------------------------- */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+
+.overview-col-8 {
+  grid-column: span 8;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.overview-col-4 {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Safety & Critical Alert Banner */
+.alert-banner {
+  background-color: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.alert-banner.normal {
+  background-color: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}
+
+.alert-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alert-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #fee2e2;
+  color: var(--color-danger-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.alert-banner.normal .alert-icon {
+  background-color: #d1fae5;
+  color: var(--color-success-text);
+}
+
+.alert-title {
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.alert-sub {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.metrics-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.metric-card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1.1;
+  font-family: var(--font-mono);
+}
+
+.metric-sub {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.summary-item:hover {
+  background-color: #f1f5f9;
+  border-color: var(--color-border-default);
+}
+
+.summary-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-item-title {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.summary-item-sub {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+
+/* ----------------------------------------------------
+   2. ASSETS & MAINTENANCE STYLING
+---------------------------------------------------- */
+.assets-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--color-bg-surface);
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  background-color: var(--color-bg-app);
+}
+
+.search-input:focus {
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-primary-500);
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  border-color: var(--color-primary-500);
+}
+
+.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-fast);
+}
+
+.th-sortable:hover {
+  color: var(--color-primary-700);
+}
+
+.sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.priority-score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priority-score-val {
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  min-width: 24px;
+}
+
+.priority-bar-outer {
+  width: 50px;
+  height: 6px;
+  background-color: var(--color-bg-muted);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.priority-bar-inner {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-500);
+}
+
+.priority-bar-inner.high { background-color: var(--color-danger-dot); }
+.priority-bar-inner.medium { background-color: var(--color-warning-dot); }
+.priority-bar-inner.low { background-color: var(--color-info-dot); }
+
+
+/* ----------------------------------------------------
+   3. TASK DETAIL DRAWER & PRIORITY EXPLANATION
+---------------------------------------------------- */
+.drawer-section-title {
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.drawer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background-color: var(--color-bg-app);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.drawer-field-label {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.drawer-field-value {
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.priority-explanation-card {
+  background-color: #f8fafc;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.priority-explanation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.priority-explanation-title {
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.priority-factor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.priority-factor-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.priority-factor-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-primary-500);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.priority-explanation-summary {
+  padding: 10px 12px;
+  background-color: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--color-primary-900);
+  line-height: 1.4;
+}
+
+
+/* ----------------------------------------------------
+   4. BLOCK PLANNING & CONTROLLER APPROVAL
+---------------------------------------------------- */
+.planning-workspace {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: 20px;
+}
+
+.planning-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background-color: var(--color-bg-surface);
+  padding: 14px 20px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.planning-progress-container {
+  padding: 16px 20px;
+  background-color: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+}
+
+.planning-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-900);
+  margin-bottom: 8px;
+}
+
+.planning-progress-bar-outer {
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-primary-100);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.planning-progress-bar-inner {
+  height: 100%;
+  background-color: var(--color-primary-600);
+  border-radius: var(--radius-full);
+  transition: width 300ms ease;
+}
+
+.approval-card {
+  background-color: var(--color-bg-surface);
+  border: 1.5px solid var(--color-primary-500);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 20px;
+}
+
+.approval-card.approved {
+  border-color: var(--color-success-border);
+  background-color: var(--color-success-bg);
+}
+
+.approval-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.approval-title {
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.approval-sub {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+
+/* ----------------------------------------------------
+   5. GANTT / BLOCK SCHEDULE TIMELINE VISUALIZER
+---------------------------------------------------- */
+.gantt-container {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gantt-header-bar {
+  padding: 12px 20px;
+  background-color: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gantt-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.gantt-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-box {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-sm);
+}
+
+.legend-box.train { background-color: #475569; }
+.legend-box.block { background-color: var(--color-primary-600); }
+.legend-box.window { background-color: #e2e8f0; border: 1px dashed #94a3b8; }
+
+.gantt-scroll-viewport {
+  width: 100%;
+  overflow-x: auto;
+  position: relative;
+  background-color: var(--color-bg-surface);
+}
+
+.gantt-timeline-wrapper {
+  min-width: 1100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.gantt-time-axis {
+  height: 36px;
+  background-color: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-default);
+  display: flex;
+  padding-left: 180px;
+}
+
+.gantt-time-tick {
+  flex: 1;
+  border-left: 1px solid var(--color-border-subtle);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  padding: 8px 4px;
+  text-align: left;
+}
+
+.gantt-corridor-row {
+  display: flex;
+  min-height: 80px;
+  border-bottom: 1px solid var(--color-border-default);
+  position: relative;
+}
+
+.gantt-corridor-row:hover {
+  background-color: #f8fafc;
+}
+
+.gantt-corridor-label {
+  width: 180px;
+  min-width: 180px;
+  padding: 14px;
+  border-right: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-subtle);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.corridor-name {
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.corridor-sub {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.gantt-track-area {
+  flex: 1;
+  position: relative;
+  height: 80px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent calc(100% / 24 - 1px),
+    var(--color-border-subtle) calc(100% / 24)
+  );
+}
+
+.gantt-train-bar {
+  position: absolute;
+  top: 10px;
+  height: 24px;
+  background-color: #475569;
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  cursor: pointer;
+  z-index: 5;
+}
+
+.gantt-train-bar:hover {
+  background-color: #334155;
+}
+
+.gantt-block-bar {
+  position: absolute;
+  top: 42px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-500));
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  cursor: pointer;
+  z-index: 10;
+  border: 1px solid rgba(255,255,255,0.3);
+  transition: transform var(--transition-fast);
+}
+
+.gantt-block-bar:hover {
+  transform: translateY(-1px);
+}
+
+.gantt-block-bar.approved {
+  background: linear-gradient(135deg, #047857, #10b981);
+}
+
+
+/* ----------------------------------------------------
+   6. NETWORK CORRIDOR SCHEMATIC STYLING
+---------------------------------------------------- */
+.network-layout {
+  display: grid;
+  grid-template-columns: 8fr 4fr;
+  gap: 20px;
+}
+
+.schematic-viewport {
+  min-height: 480px;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.schematic-header {
+  padding: 12px 16px;
+  background-color: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* SVG / CSS Network Diagram Canvas */
+.schematic-canvas {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  background-color: #f8fafc;
+  position: relative;
+  min-height: 380px;
+  overflow-x: auto;
+}
+
+.schematic-track-line {
+  position: relative;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.track-line-bg {
+  position: absolute;
+  left: 30px;
+  right: 30px;
+  height: 6px;
+  background-color: #cbd5e1;
+  border-radius: 3px;
+  z-index: 1;
+}
+
+.track-line-bg::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -2px;
+  bottom: -2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #94a3b8 0,
+    #94a3b8 2px,
+    transparent 2px,
+    transparent 8px
+  );
+}
+
+/* Station Node Component */
+.schematic-station-node {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.schematic-station-node:hover {
+  transform: translate(-50%, -55%);
+}
+
+.station-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-primary-700);
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 2px var(--color-primary-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.station-dot.junction {
+  width: 24px;
+  height: 24px;
+  background-color: #059669;
+  box-shadow: 0 0 0 2px #10b981;
+}
+
+.station-node-label {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  background-color: #ffffff;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default);
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.station-node-sub {
+  font-size: 9px;
+  color: var(--color-text-muted);
+}
+
+/* Train Map Marker */
+.schematic-train-marker {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 20;
+  border: 1px solid var(--color-primary-400);
+  white-space: nowrap;
+}
+
+.schematic-train-marker:hover {
+  background-color: var(--color-primary-700);
+}
+
+.schematic-train-marker.freight {
+  background-color: #334155;
+  border-color: #64748b;
+}
+
+/* Block Section Indicator Overlay */
+.schematic-block-indicator {
+  position: absolute;
+  top: 42px;
+  height: 18px;
+  background-color: rgba(67, 56, 202, 0.85);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: var(--font-weight-bold);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 15;
+  cursor: pointer;
+}
+
+.constraint-bundling-card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.bundling-header {
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bundling-note {
+  font-size: 12px;
+  color: var(--color-primary-900);
+  background-color: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1024px) {
+  .planning-workspace, .network-layout {
+    grid-template-columns: 1fr;
+  }
+}

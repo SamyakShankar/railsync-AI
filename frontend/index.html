@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RailSync AI - Indian Railways Block Operations System</title>
+  
+  <!-- CSS Design System & Theme Files -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <!-- ====================================================
+         1. SIDEBAR NAVIGATION
+    ==================================================== -->
+    <aside id="app-sidebar" class="app-sidebar">
+      
+      <!-- Branding Area -->
+      <div class="sidebar-branding">
+        <div class="branding-logo">
+          <div class="brand-emblem" title="Indian Railways RailSync AI">IR</div>
+          <div class="brand-text">
+            <span class="brand-name">RailSync AI</span>
+            <span class="brand-tag">INDIAN RAILWAYS</span>
+          </div>
+        </div>
+        <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+          <svg class="sidebar-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Operational Context Pill -->
+      <div class="sidebar-context">
+        <span class="context-dot" title="System Status: Normal"></span>
+        <div class="context-info">
+          <span class="context-division">AGC DIVISION</span>
+          <span class="context-sub">NR / AGC-NDLS</span>
+        </div>
+      </div>
+
+      <!-- Primary Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">PRIMARY NAVIGATION</div>
+        
+        <a class="sidebar-nav-item active" data-route="overview" data-tooltip="Overview">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </span>
+          <span class="nav-label">Overview</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="assets" data-tooltip="Assets & Maintenance">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+          </span>
+          <span class="nav-label">Assets & Maintenance</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="planning" data-tooltip="Block Planning">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </span>
+          <span class="nav-label">Block Planning</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="schedule" data-tooltip="Block Schedule">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </span>
+          <span class="nav-label">Block Schedule</span>
+        </a>
+
+        <a class="sidebar-nav-item" data-route="network" data-tooltip="Network & Trains">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 3v12"></path>
+              <path d="M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
+              <path d="M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
+              <path d="M15 6a6 6 0 0 0-6 6v3"></path>
+              <path d="M18 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"></path>
+            </svg>
+          </span>
+          <span class="nav-label">Network & Trains</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Controller Footer -->
+      <div class="sidebar-footer">
+        <div class="controller-avatar" title="Section Controller">SC</div>
+        <div class="controller-info">
+          <span class="controller-name">Chief Controller</span>
+          <span class="controller-role">AGC-DIV-01</span>
+        </div>
+      </div>
+    </aside>
+
+
+    <!-- ====================================================
+         2. MAIN APPLICATION WRAPPER & TOP HEADER
+    ==================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Top Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <div>
+            <div id="header-page-title" class="header-page-title">Operational Overview</div>
+            <div id="header-breadcrumb" class="header-breadcrumb">RailSync / Operational Overview</div>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="ops-status-badge">
+            <span class="status-indicator">
+              <span class="status-dot emerald"></span>
+              <span class="ops-label">NR / AGC-NDLS SECTION</span>
+            </span>
+            <span class="ops-divider"></span>
+            <span class="ops-sync">LAST SYNC: 2026-09-10 22:11 IST</span>
+          </div>
+        </div>
+      </header>
+
+
+      <!-- ====================================================
+           3. MAIN CONTENT AREA & PAGE SHELLS
+      ==================================================== -->
+      <main id="main-content" class="main-content">
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 1: /overview
+        ---------------------------------------------------- -->
+        <div id="view-overview" class="page-view active">
+          
+          <!-- HIERARCHY 1: Safety & Critical Alerts Banner -->
+          <div id="overview-alert-container"></div>
+
+          <!-- Metrics Summary Cards Row -->
+          <div class="metrics-summary-row">
+            <div class="metric-card">
+              <span class="metric-label">Network Availability</span>
+              <span id="metric-network-availability" class="metric-value">-- %</span>
+              <span class="metric-sub"><span class="badge badge-neutral">Telemetry</span> Track Section Health</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Active Maintenance Blocks</span>
+              <span id="metric-active-blocks" class="metric-value">--</span>
+              <span class="metric-sub"><span class="badge badge-info">Planned</span> Active Track Windows</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Pending Approvals</span>
+              <span id="metric-pending-approvals" class="metric-value">--</span>
+              <span class="metric-sub"><span class="badge badge-warning">Queue</span> Block Requests</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Train Punctuality Index</span>
+              <span id="metric-punctuality" class="metric-value">-- %</span>
+              <span class="metric-sub"><span class="badge badge-success">On Schedule</span> Main Line Punctuality</span>
+            </div>
+          </div>
+
+          <!-- Dashboard Overview Grid -->
+          <div class="overview-grid">
+            <div class="overview-col-8">
+              
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      Active Maintenance Blocks
+                    </span>
+                    <span class="card-subtitle">Currently active and scheduled track block windows</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="overview-active-blocks"></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Train & Network Operational State</span>
+                    <span class="card-subtitle">Corridor section health and traffic movement summary</span>
+                  </div>
+                  <span class="badge badge-success">Normal Traffic</span>
+                </div>
+                <div class="card-body">
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
+                      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">CORRIDOR SECTIONS</div>
+                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">AGC — MTJ — NDLS</div>
+                      <div style="font-size: 11px; color: var(--color-success-text); margin-top: 4px;">Double Track Electrified</div>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
+                      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">ACTIVE TRAFFIC DENSITY</div>
+                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">High Density</div>
+                      <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Express & Goods Trains</div>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle);">
+                      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;">MAX CORRIDOR SPEED</div>
+                      <div style="font-size: 18px; font-weight: 700; color: var(--color-text-primary);">130 km/h</div>
+                      <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Normal Speed Signaled</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Maintenance Workload Summary</span>
+                    <span class="card-subtitle">Task distribution across maintenance departments</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">P-WAY (TRACK)</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Permanent Way</div>
+                      <span class="badge badge-neutral">Track & Ballast</span>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">TRD / OHE</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Traction (OHE)</div>
+                      <span class="badge badge-neutral">Power & Lines</span>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">S&T</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Signaling</div>
+                      <span class="badge badge-neutral">Interlocking</span>
+                    </div>
+                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">CIVIL / BRIDGE</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Structures</div>
+                      <span class="badge badge-neutral">Bridges & Works</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="overview-col-4">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Pending Approvals</span>
+                    <span class="card-subtitle">Block requests awaiting controller action</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="empty-state">
+                    <div class="empty-state-title">No Pending Requests</div>
+                    <div class="empty-state-desc">Generated block plan requests requiring approval will queue here.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">Critical & High Priority Tasks</span>
+                    <span class="card-subtitle">Tasks requiring priority block allocation</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="overview-critical-tasks"></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title-group">
+                    <span class="card-title">AI Recommendation Panel</span>
+                    <span class="card-subtitle">RailSync Intelligent Planner Agent</span>
+                  </div>
+                  <span class="badge badge-success">Engine Ready</span>
+                </div>
+                <div class="card-body">
+                  <div style="padding: 12px; background: var(--color-primary-50); border: 1px solid var(--color-primary-100); border-radius: var(--radius-md); font-size: 12px; color: var(--color-primary-900);">
+                    <strong>Optimization Advice:</strong> Combine P-Way track tamping and TRD overhead line inspection on AGC-MTJ UP line into a single joint block window to minimize total traffic disruption.
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 2: /assets
+        ---------------------------------------------------- -->
+        <div id="view-assets" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Assets & Maintenance Workspace</h2>
+              <span class="section-desc">Unified corridor maintenance tasks, track asset health, and requested work orders.</span>
+            </div>
+            <div class="section-actions">
+              <span id="assets-count-badge" class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">0 Tasks</span>
+            </div>
+          </div>
+
+          <div class="assets-toolbar">
+            <div class="search-input-wrap">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input id="assets-search-input" type="text" class="search-input" placeholder="Search Task ID, Department, Section...">
+            </div>
+
+            <select id="filter-dept" class="filter-select">
+              <option value="">All Departments</option>
+              <option value="P-Way">P-Way (Permanent Way)</option>
+              <option value="TRD">TRD / OHE (Traction)</option>
+              <option value="S&T">S&T (Signaling & Telecom)</option>
+              <option value="Civil">Civil / Bridge</option>
+            </select>
+
+            <select id="filter-corridor" class="filter-select">
+              <option value="">All Corridors</option>
+              <option value="AGC-MTJ">AGC-MTJ (Agra Cantt - Mathura)</option>
+              <option value="MTJ-KSV">MTJ-KSV (Mathura - Kosi Kalan)</option>
+              <option value="KSV-NDLS">KSV-NDLS (Kosi Kalan - New Delhi)</option>
+            </select>
+
+            <select id="filter-severity" class="filter-select">
+              <option value="">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+
+            <select id="filter-priority" class="filter-select">
+              <option value="">All Priorities</option>
+              <option value="high">High Priority (≥ 75)</option>
+              <option value="medium">Medium Priority (40-74)</option>
+              <option value="low">Low Priority (&lt; 40)</option>
+            </select>
+
+            <select id="filter-status" class="filter-select">
+              <option value="">All Statuses</option>
+              <option value="Unassigned">Unassigned</option>
+              <option value="Pending Approval">Pending Approval</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Approved">Approved</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th class="th-sortable" data-sort-field="id">Task ID <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="department">Department <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="corridor">Corridor <span class="sort-icon">↕</span></th>
+                  <th>Description</th>
+                  <th class="th-sortable" data-sort-field="severity">Severity <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="duration">Duration <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="maintenance_age">Age <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="priority_score">Priority <span class="sort-icon">↕</span></th>
+                  <th class="th-sortable" data-sort-field="status">Status <span class="sort-icon">↕</span></th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="assets-table-body"></tbody>
+            </table>
+          </div>
+
+        </div>
+
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 3: /planning
+        ---------------------------------------------------- -->
+        <div id="view-planning" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Automatic Block Planning Workspace</h2>
+              <span class="section-desc">Synthesize and optimize non-overlapping maintenance block schedules against synthetic corridor train occupancy constraints.</span>
+            </div>
+          </div>
+
+          <div class="planning-controls-bar">
+            <div class="planning-group">
+              <span class="planning-label">Section:</span>
+              <select class="filter-select">
+                <option value="AGC-NDLS">Agra Cantt - New Delhi (AGC-NDLS Main Line)</option>
+              </select>
+
+              <span class="planning-label" style="margin-left: 12px;">Time Window:</span>
+              <select class="filter-select">
+                <option value="24h">Next 24 Hours (Operational Day)</option>
+              </select>
+            </div>
+
+            <div>
+              <button id="btn-generate-plan" class="btn btn-primary btn-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                Generate Block Plan
+              </button>
+            </div>
+          </div>
+
+          <div id="planning-progress-area" style="display: none;"></div>
+
+          <div class="planning-workspace">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Task Selection & Review</span>
+                  <span class="card-subtitle">Select maintenance tasks to include in planning run</span>
+                </div>
+                <button id="btn-select-all-tasks" class="btn btn-secondary btn-sm">Select All Tasks</button>
+              </div>
+              <div class="card-body">
+                <div id="planning-task-selection-list" class="summary-list"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Plan Generation Result</span>
+                  <span class="card-subtitle">Optimizer feasibility and scheduled block summary</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="planning-result-summary"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 4: /schedule
+        ---------------------------------------------------- -->
+        <div id="view-schedule" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Block Schedule & Corridor Gantt Timeline</h2>
+              <span class="section-desc">Interactive Gantt visualization demonstrating train occupancy vs maintenance block constraints.</span>
+            </div>
+          </div>
+
+          <div id="schedule-approval-area"></div>
+
+          <div class="constraint-bundling-card">
+            <div class="bundling-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Constraint Bundling & Sequencing Logic (Corridor Capacity = 1)
+            </div>
+            <div class="bundling-note">
+              <strong>Corridor Capacity Rule:</strong> The solver enforces strict track capacity = 1. Maintenance tasks are <strong>coordinated sequentially</strong> within the same train-free window opportunity rather than overlapping on the same track segment.
+            </div>
+          </div>
+
+          <div id="gantt-viewport-area"></div>
+
+        </div>
+
+
+        <!-- ----------------------------------------------------
+             PAGE VIEW 5: /network
+        ---------------------------------------------------- -->
+        <div id="view-network" class="page-view">
+          
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Network & Train Operations</h2>
+              <span class="section-desc">Corridor schematic topology, station nodes, synthetic train positions, and block section indicators.</span>
+            </div>
+          </div>
+
+          <div class="network-layout">
+            
+            <!-- Left Column: Railway Corridor Schematic Workspace -->
+            <div class="schematic-viewport">
+              <div class="schematic-header">
+                <div class="planning-group">
+                  <span class="planning-label">Section Schematic:</span>
+                  <select class="filter-select">
+                    <option value="AGC-NDLS">AGC (Agra Cantt) — MTJ (Mathura) — NDLS (New Delhi)</option>
+                  </select>
+                </div>
+                <span class="badge badge-neutral">Synthetic Timetable Data</span>
+              </div>
+
+              <!-- Canvas Renderer for 6 Stations, 4 Corridors, 7 Trains -->
+              <div id="network-schematic-canvas" class="schematic-canvas"></div>
+            </div>
+
+            <!-- Right Column: Side Information Panel Inspector -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <span class="card-title">Corridor Element Inspector</span>
+                  <span class="card-subtitle">Details of selected station, train, or track segment</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="network-inspector-panel"></div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+
+  </div>
+
+
+  <!-- ====================================================
+       4. REUSABLE DRAWER SYSTEM (TASK DETAIL DRAWER)
+  ==================================================== -->
+  <div id="task-drawer-backdrop" class="drawer-backdrop">
+    <div class="drawer">
+      <div class="drawer-header">
+        <span id="task-drawer-title" class="drawer-title">Maintenance Task Details</span>
+        <button class="btn btn-ghost btn-sm" data-dismiss="drawer" title="Close Drawer">&times;</button>
+      </div>
+      
+      <div id="task-drawer-body-content" class="drawer-body"></div>
+
+      <div class="drawer-footer">
+        <button class="btn btn-secondary" data-dismiss="drawer">Close</button>
+        <button class="btn btn-primary" onclick="alert('Task selected for block planning synthesis.')">Include in Plan</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- JavaScript Application Files -->
+  <script src="js/api.js"></script>
+  <script src="js/taskManager.js"></script>
+  <script src="js/planManager.js"></script>
+  <script src="js/networkManager.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
