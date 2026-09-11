@@ -78,8 +78,15 @@
 
 .metrics-summary-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+}
+
+.workload-source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
 }
 
 .metric-card {
@@ -850,6 +857,10 @@
 
 @media (max-width: 1024px) {
   .planning-workspace, .network-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workload-source-grid {
     grid-template-columns: 1fr;
   }
 }

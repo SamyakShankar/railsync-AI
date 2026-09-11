@@ -279,9 +279,6 @@
     const availabilityEl = document.getElementById('metric-network-availability');
     if (availabilityEl) availabilityEl.textContent = loading ? '--' : (tasks.length ? tasks.length + ' tasks' : '--');
 
-    const punctualityEl = document.getElementById('metric-punctuality');
-    if (punctualityEl) punctualityEl.textContent = 'n/a';
-
     const alertBannerContainer = document.getElementById('overview-alert-container');
     if (alertBannerContainer) {
       if (loading) {

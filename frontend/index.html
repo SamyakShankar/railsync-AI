@@ -133,16 +133,7 @@
           </div>
         </div>
 
-        <div class="header-right">
-          <div class="ops-status-badge">
-            <span class="status-indicator">
-              <span id="ops-health-dot" class="status-dot slate"></span>
-              <span id="ops-health-label" class="ops-label">Checking backend...</span>
-            </span>
-            <span class="ops-divider"></span>
-            <span id="ops-sync-label" class="ops-sync">GET /health</span>
-          </div>
-        </div>
+        <div class="header-right"></div>
       </header>
 
 
@@ -175,11 +166,6 @@
               <span class="metric-label">Pending Approvals</span>
               <span id="metric-pending-approvals" class="metric-value">--</span>
               <span class="metric-sub"><span class="badge badge-warning">Queue</span> Block Requests</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Punctuality</span>
-              <span id="metric-punctuality" class="metric-value">n/a</span>
-              <span class="metric-sub"><span class="badge badge-neutral">Synthetic demo</span> No live IR feed</span>
             </div>
           </div>
 
@@ -235,30 +221,25 @@
                 <div class="card-header">
                   <div class="card-title-group">
                     <span class="card-title">Maintenance Workload Summary</span>
-                    <span class="card-subtitle">Task distribution across maintenance departments</span>
+                    <span class="card-subtitle">Source systems feeding unified maintenance planning</span>
                   </div>
                 </div>
                 <div class="card-body">
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                  <div class="workload-source-grid">
                     <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
-                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">P-WAY (TRACK)</div>
-                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Permanent Way</div>
-                      <span class="badge badge-neutral">Track & Ballast</span>
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">TMS</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Track Management System</div>
+                      <span class="badge badge-neutral">Track maintenance work orders</span>
                     </div>
                     <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
-                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">TRD / OHE</div>
-                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Traction (OHE)</div>
-                      <span class="badge badge-neutral">Power & Lines</span>
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">SMMS</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Signalling Maintenance &amp; Management System</div>
+                      <span class="badge badge-neutral">Signal &amp; interlocking work orders</span>
                     </div>
                     <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
-                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">S&T</div>
-                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Signaling</div>
-                      <span class="badge badge-neutral">Interlocking</span>
-                    </div>
-                    <div style="padding: 12px; background: var(--color-bg-app); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); text-align: center;">
-                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">CIVIL / BRIDGE</div>
-                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Structures</div>
-                      <span class="badge badge-neutral">Bridges & Works</span>
+                      <div style="font-size: 11px; font-weight: 700; color: var(--color-text-muted);">TDMS</div>
+                      <div style="font-size: 20px; font-weight: 700; color: var(--color-primary-700); margin: 4px 0;">Traction Distribution Management System</div>
+                      <span class="badge badge-neutral">OHE / traction work orders</span>
                     </div>
                   </div>
                 </div>
@@ -291,21 +272,6 @@
                 </div>
                 <div class="card-body">
                   <div id="overview-critical-tasks"></div>
-                </div>
-              </div>
-
-              <div class="card">
-                <div class="card-header">
-                  <div class="card-title-group">
-                    <span class="card-title">AI Recommendation Panel</span>
-                    <span class="card-subtitle">RailSync Intelligent Planner Agent</span>
-                  </div>
-                  <span class="badge badge-success">Engine Ready</span>
-                </div>
-                <div class="card-body">
-                  <div style="padding: 12px; background: var(--color-primary-50); border: 1px solid var(--color-primary-100); border-radius: var(--radius-md); font-size: 12px; color: var(--color-primary-900);">
-                    <strong>Planning note:</strong> CP-SAT places TMS, SMMS, and TDMS work only in train-free windows on C1–C4.
-                  </div>
                 </div>
               </div>
 
